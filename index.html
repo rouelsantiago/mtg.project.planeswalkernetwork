@@ -2,6 +2,7 @@
 <html>
 <head>
     <title>Planeswalker Network</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <script>
         (function() {
             const urls = [
@@ -1310,6 +1311,81 @@
             min-width: 60px;
             text-align: right;
         }
+
+        /* Responsive / Mobile adjustments */
+        @media (max-width: 900px) {
+            body {
+                margin: 12px;
+                font-size: 15px;
+            }
+            .navbar {
+                padding: 10px 12px;
+                gap: 8px;
+            }
+            .main-layout {
+                flex-direction: column;
+                gap: 16px;
+                align-items: stretch;
+            }
+            .binder-search-layout {
+                display: block;
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            .binder-card-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+                gap: 12px;
+                max-width: none;
+                margin-left: 0;
+                margin-right: 0;
+            }
+            .binder-card {
+                min-height: 320px;
+                max-height: none;
+                border-radius: 12px;
+            }
+            .binder-card-image-wrapper {
+                min-height: 180px;
+            }
+            .right-preview {
+                display: none;
+                position: static;
+                width: 100%;
+            }
+            .search-box {
+                font-size: 16px;
+                padding: 12px;
+            }
+            .styled-select {
+                min-width: auto;
+                width: 100%;
+            }
+            .deck-sidebar, .right-preview {
+                width: 100%;
+            }
+            .offer-tab-button, .offer-subtab-button {
+                min-width: 80px;
+                font-size: 12px;
+                padding: 8px 10px;
+            }
+            .profile-btn {
+                padding: 12px 14px;
+                font-size: 16px;
+            }
+            .filter-pill, .filter-mode-button {
+                padding: 10px 14px;
+                font-size: 15px;
+            }
+            .recent-box {
+                max-width: 100%;
+            }
+            .collection-section-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1855,12 +1931,33 @@
         const SUPABASE_ENABLED = true;
         const SUPABASE_URL = 'https://rpzumrzzkiwuapycjvif.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_lm6XnUVwctlFW6kZIbQ4sw_90aSMwjU';
+        // If true, clear any persisted Supabase auth session and local currentUser on page load.
+        // This prevents someone opening a shared link from seeing a previous user's session.
+        const SUPABASE_CLEAR_SESSION_ON_LOAD = true;
         let supabaseClient = null;
         function initSupabaseClient() {
             if (SUPABASE_ENABLED && SUPABASE_URL && SUPABASE_ANON_KEY && typeof createClient === 'function') {
                 try {
                     supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                     console.log('Supabase client initialized (initSupabaseClient)');
+                    if (SUPABASE_CLEAR_SESSION_ON_LOAD && supabaseClient && supabaseClient.auth) {
+                        // attempt to clear any active session in the browser
+                        supabaseClient.auth.getSession().then(res => {
+                            const session = res && res.data && res.data.session;
+                            if (session) {
+                                supabaseClient.auth.signOut().then(() => {
+                                    console.log('Cleared Supabase session on load as configured.');
+                                }).catch(e => console.warn('Failed to sign out on load', e));
+                            }
+                        }).catch(e => console.warn('Error checking Supabase session on load', e));
+                        // also clear the app's stored current user to avoid showing their profile
+                        try {
+                            localStorage.removeItem('mtgCurrentUser_v2');
+                            currentUser = null;
+                        } catch (e) {
+                            console.warn('Failed to clear mtgCurrentUser_v2', e);
+                        }
+                    }
                 } catch (e) {
                     console.warn('Failed to initialize Supabase client', e);
                 }
