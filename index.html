@@ -114,12 +114,100 @@
             background-color: #1e1e1e;
             border: 1px solid #444;
             border-radius: 4px;
-            width: 200px;
+            width: 240px;
             box-shadow: 0px 8px 16px rgba(0,0,0,0.6);
             z-index: 1500;
             display: none;
             overflow: hidden;
         }
+        .notification-dropdown {
+            width: 320px;
+            right: -20px;
+            max-height: 360px;
+            overflow-y: auto;
+        }
+        .notification-item {
+            padding: 12px 14px;
+            font-size: 13px;
+            cursor: pointer;
+            color: #eee;
+            border-bottom: 1px solid #2d2d2d;
+            transition: 0.2s;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+        .notification-item:hover {
+            background-color: #272727;
+        }
+        .notification-summary {
+            color: #ff9e3b;
+            font-weight: bold;
+        }
+        .notification-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 20px;
+            min-height: 20px;
+            padding: 0 6px;
+            border-radius: 999px;
+            background-color: #ff4a4a;
+            color: #121212;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+        .nav-notification-container {
+            position: relative;
+            margin-right: 12px;
+        }
+        .nav-notification-btn {
+            background-color: #252525;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 10px 14px;
+            font-size: 14px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .nav-notification-btn:hover {
+            background-color: #2e2e2e;
+        }
+        .nav-notification-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+        }
+        .nav-notification-title {
+            color: #aaa;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            padding: 10px 14px;
+            border-bottom: 1px solid #2d2d2d;
+        }
+        .offer-menu-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 6px;
+            border-radius: 999px;
+            background-color: #ff4a4a;
+            color: #121212;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+
         .nav-dropdown-item {
             padding: 12px 16px;
             font-size: 14px;
@@ -1393,6 +1481,14 @@
     <div class="navbar">
         <div class="nav-logo">PLANESWALKER NETWORK</div>
         
+        <div class="nav-notification-container">
+            <button id="navNotificationsButton" class="nav-notification-btn" onclick="toggleNotificationsDropdown(event)">
+                🔔
+                <span id="notificationBadge" class="notification-badge" style="display:none;">0</span>
+            </button>
+            <div id="notificationDropdown" class="nav-dropdown-content notification-dropdown"></div>
+        </div>
+
         <div class="profile-dropdown-container">
             <button class="profile-btn" onclick="toggleNavDropdown(event)">
                 👤 <span id="navProfileUsername">My Profile</span> <span style="font-size: 10px;">▼</span>
@@ -1400,7 +1496,7 @@
             <div id="navDropdownMenu" class="nav-dropdown-content">
                 <div class="nav-dropdown-item" onclick="navigateToView('my-binder')">📕 My Binder</div>
                 <div class="nav-dropdown-item" onclick="navigateToView('my-decks')">⚔️ My Decks</div>
-                <div class="nav-dropdown-item" onclick="navigateToView('offers')">💬 Offers</div>
+                <div class="nav-dropdown-item" onclick="navigateToView('offers')">💬 Offers <span id="offersMenuBadge" class="offer-menu-badge" style="display:none;">0</span></div>
                 <div class="nav-dropdown-item" onclick="navigateToView('friends')">👥 Friends' Binders</div>
                 <div class="nav-dropdown-item" style="border-top: 1px solid #333; color: #ff4a4a;" onclick="logoutUser()">🚪 Logout</div>
             </div>
@@ -1851,10 +1947,14 @@
                 <div id="requestFormArea" style="display: flex; flex-direction: column; gap: 12px;">
                     <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
                         <label for="requestTypeSelect" style="color:#aaa; font-size:13px; font-weight:bold;">Action</label>
-                        <select id="requestTypeSelect" class="styled-select" style="min-width: 160px;">
+                        <select id="requestTypeSelect" class="styled-select" style="min-width: 160px;" onchange="updateRequestOfferPlaceholder()">
                             <option value="trade">Trade</option>
                             <option value="buy">Buy</option>
                         </select>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <label id="requestOfferLabel" for="requestOfferInput" style="color:#aaa; font-size:13px; font-weight:bold;">Offer</label>
+                        <input id="requestOfferInput" class="styled-input" placeholder="Offer cards to trade, comma-separated" style="width: 100%;" />
                     </div>
                     <textarea id="commentInputField" class="styled-input" placeholder="Leave a comment or trading interest note..." style="height: 100px; resize: vertical;"></textarea>
                     <div style="display: flex; justify-content: flex-end; gap: 10px;">
@@ -2227,6 +2327,7 @@
                 renderCollectionTable();
                 renderDeckSidebar();
                 renderFriendsGrid();
+                renderNotificationBadge();
                 // Temporary debug button to inspect stored users and collection data
                 addDebugButton();
             });
@@ -2277,6 +2378,7 @@
             document.querySelectorAll('.app-view').forEach(view => view.classList.remove('active-view'));
             document.getElementById(`view-${viewId}`).classList.add('active-view');
             document.getElementById('navDropdownMenu').style.display = 'none';
+            closeNotificationsDropdown();
             
             if (viewId === 'my-binder') {
                 renderCollectionTable();
@@ -2288,11 +2390,13 @@
             } else if (viewId === 'offers') {
                 currentTradeOffersSection = 'made';
                 currentTradeOffersTab = 'open';
+                markTradeNotificationsSeen();
                 renderTradeNotifications();
             } else if (viewId === 'friends') {
                 renderFriendsGrid();
                 exitFriendBinderView();
             }
+            renderNotificationBadge();
         }
 
         document.addEventListener('click', function(event) {
@@ -2302,6 +2406,9 @@
             }
             if (!event.target.closest('.action-dots-btn')) {
                 document.querySelectorAll('.action-menu-dropdown').forEach(menu => menu.style.display = 'none');
+            }
+            if (!event.target.closest('#notificationDropdown') && !event.target.closest('#navNotificationsButton')) {
+                closeNotificationsDropdown();
             }
             const clickedCardName = event.target.closest('.clickable-card-name');
             const clickedPreviewControl = event.target.closest('.right-preview') || event.target.closest('#previewPrevBtn') || event.target.closest('#previewNextBtn') || event.target.closest('#previewFaceToggleBtn');
@@ -3206,6 +3313,7 @@
             const modal = document.getElementById('cardCommentModal');
             const title = document.getElementById('commentModalTitle');
             const commentTextarea = document.getElementById('commentInputField');
+            const offerInput = document.getElementById('requestOfferInput');
             const hidden = document.getElementById('commentCardId');
             const ownerHidden = document.getElementById('commentModalOwnerId');
             const requestFormArea = document.getElementById('requestFormArea');
@@ -3218,7 +3326,9 @@
             hidden.value = cardId;
             ownerHidden.value = ownerId;
             commentTextarea.value = '';
+            offerInput.value = '';
             document.getElementById('requestTypeSelect').value = 'trade';
+            updateRequestOfferPlaceholder();
             requestFormArea.style.display = isOwnerView ? 'none' : 'flex';
             requestStatusHeader.textContent = isOwnerView
                 ? `Incoming requests for ${ownerName}`
@@ -3281,6 +3391,7 @@
                 if (!isOwnerView && request.status === 'accepted') {
                     actionsHtml = `<button class="styled-btn" style="padding:6px 10px;" onclick="completeTrade('${cardId}', '${request.requestId}')">Complete Trade</button>`;
                 }
+                const offerLine = request.offerDetails ? `<div style="margin-top:8px;color:#ffd166;"><strong>Offer:</strong> ${escapeHtml(request.offerDetails)}</div>` : '';
                 const counterLine = request.counterMessage ? `<div style="margin-top:8px;color:#ccc;"><strong>Counter Offer:</strong> ${escapeHtml(request.counterMessage)}</div>` : '';
                 const historyHtml = request.history && request.history.length > 0
                     ? `<div style="margin-top:10px; color:#aaa; font-size:12px;"><strong>History</strong><br>${request.history.map(event => `${escapeHtml(event.note)} <span style='color:#999;'>(${new Date(event.when).toLocaleString()})</span>`).join('<br>')}</div>`
@@ -3292,6 +3403,7 @@
                         <span style="color:${statusColor};">${request.status.charAt(0).toUpperCase() + request.status.slice(1)}</span>
                     </div>
                     <div class="comment-card-body">${escapeHtml(request.message)}</div>
+                    ${offerLine}
                     ${counterLine}
                     ${historyHtml}
                     <div style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">${actionsHtml}</div>
@@ -3305,7 +3417,9 @@
             const ownerId = document.getElementById('commentModalOwnerId').value;
             const type = document.getElementById('requestTypeSelect').value;
             const textarea = document.getElementById('commentInputField');
+            const offerInput = document.getElementById('requestOfferInput');
             const message = textarea.value.trim();
+            let offerDetails = offerInput.value.trim();
             if (!message) {
                 alert('Please include a message with your request.');
                 return;
@@ -3313,6 +3427,19 @@
             if (ownerId === currentUser.id) {
                 alert('You cannot request your own card from yourself.');
                 return;
+            }
+            if (type === 'buy') {
+                const numericOffer = Number(offerDetails);
+                if (!offerDetails || Number.isNaN(numericOffer) || numericOffer <= 0) {
+                    alert('Please enter a valid numeric offer amount for buying.');
+                    return;
+                }
+                offerDetails = `$${numericOffer.toFixed(2)}`;
+            } else {
+                if (!offerDetails) {
+                    alert('Please enter the cards you are offering in exchange.');
+                    return;
+                }
             }
             if (!tradeRequests[cardId]) tradeRequests[cardId] = [];
 
@@ -3325,8 +3452,11 @@
                 requesterId: currentUser.id,
                 requesterName: currentUser.username || 'Guest',
                 type: type,
+                offerDetails: offerDetails,
                 message: message,
                 status: 'pending',
+                ownerSeen: false,
+                requesterSeen: true,
                 counterMessage: '',
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
@@ -3338,8 +3468,10 @@
             tradeRequests[cardId].push(request);
             localStorage.setItem('mtgTradeRequests_v2', JSON.stringify(tradeRequests));
             textarea.value = '';
+            offerInput.value = '';
             renderRequestList(cardId, ownerId, false);
             renderTradeNotifications();
+            renderNotificationBadge();
             alert('Your request has been sent. The card owner can now accept, decline, or counter the request.');
         }
 
@@ -3351,10 +3483,12 @@
                 request.status = 'accepted';
                 request.updatedAt = new Date().toISOString();
                 request.history.push({ when: request.updatedAt, actor: currentUser.username || 'Owner', note: `${getOwnerDisplayName(request.ownerId)} accepted the request.` });
+                request.requesterSeen = false;
             } else if (action === 'decline') {
                 request.status = 'declined';
                 request.updatedAt = new Date().toISOString();
                 request.history.push({ when: request.updatedAt, actor: currentUser.username || 'Owner', note: `${getOwnerDisplayName(request.ownerId)} declined the request.` });
+                request.requesterSeen = false;
             } else if (action === 'counter') {
                 const counterNote = prompt('Enter your counter-offer note:');
                 if (!counterNote) return;
@@ -3362,10 +3496,12 @@
                 request.counterMessage = counterNote;
                 request.updatedAt = new Date().toISOString();
                 request.history.push({ when: request.updatedAt, actor: currentUser.username || 'Owner', note: `${getOwnerDisplayName(request.ownerId)} countered: ${counterNote}` });
+                request.requesterSeen = false;
             }
             localStorage.setItem('mtgTradeRequests_v2', JSON.stringify(tradeRequests));
             renderRequestList(cardId, request.ownerId, true);
             renderCollectionTable();
+            renderNotificationBadge();
         }
 
         function completeTrade(cardId, requestId) {
@@ -3494,6 +3630,7 @@
                     <button class="styled-btn" onclick="respondToTradeRequest('${request.cardId}', '${request.requestId}', 'counter')">Counter</button>
                 `;
             }
+            const offerLine = request.offerDetails ? `<div style="margin-top:8px;color:#ffd166;"><strong>Offer:</strong> ${escapeHtml(request.offerDetails)}</div>` : '';
             const counterLine = request.counterMessage ? `<div style="margin-top:8px;color:#ccc;"><strong>Counter:</strong> ${escapeHtml(request.counterMessage)}</div>` : '';
             const historyHtml = request.history && request.history.length > 0
                 ? `<div style="margin-top:10px; color:#999; font-size:12px;"><strong>History</strong><br>${request.history.map(event => `${escapeHtml(event.note)} <span style='color:#777;'>(${new Date(event.when).toLocaleString()})</span>`).join('<br>')}</div>`
@@ -3506,11 +3643,143 @@
                         <div class="offer-card-status" style="color:${statusColor};">${statusText}</div>
                     </div>
                     <div class="offer-card-body">${escapeHtml(request.message)}</div>
+                    ${offerLine}
                     ${counterLine}
                     ${historyHtml}
                     <div class="offer-card-actions">${actionHtml}</div>
                 </div>
             `;
+        }
+
+        function getUnreadTradeNotificationCount() {
+            if (!currentUser) return 0;
+            let count = 0;
+            Object.keys(tradeRequests).forEach(cardId => {
+                (tradeRequests[cardId] || []).forEach(request => {
+                    if (request.ownerId === currentUser.id && !request.ownerSeen && ['pending', 'countered', 'accepted'].includes(request.status)) {
+                        count += 1;
+                    }
+                });
+            });
+            return count;
+        }
+
+        function renderNotificationBadge() {
+            const badge = document.getElementById('notificationBadge');
+            const menuBadge = document.getElementById('offersMenuBadge');
+            const unread = getUnreadTradeNotificationCount();
+            if (badge) {
+                if (unread > 0) {
+                    badge.textContent = unread > 9 ? '9+' : String(unread);
+                    badge.style.display = 'inline-flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+            if (menuBadge) {
+                if (unread > 0) {
+                    menuBadge.textContent = unread > 9 ? '9+' : String(unread);
+                    menuBadge.style.display = 'inline-flex';
+                } else {
+                    menuBadge.style.display = 'none';
+                }
+            }
+        }
+
+        function toggleNotificationsDropdown(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('notificationDropdown');
+            if (!dropdown) return;
+            if (dropdown.style.display === 'block') {
+                dropdown.style.display = 'none';
+                return;
+            }
+            renderNotificationDropdown();
+            dropdown.style.display = 'block';
+        }
+
+        function closeNotificationsDropdown() {
+            const dropdown = document.getElementById('notificationDropdown');
+            if (dropdown) dropdown.style.display = 'none';
+        }
+
+        function renderNotificationDropdown() {
+            const dropdown = document.getElementById('notificationDropdown');
+            if (!dropdown || !currentUser) return;
+            const notifications = [];
+            Object.keys(tradeRequests).forEach(cardId => {
+                (tradeRequests[cardId] || []).forEach(request => {
+                    if (request.ownerId === currentUser.id && !request.ownerSeen && ['pending', 'countered', 'accepted'].includes(request.status)) {
+                        notifications.push(request);
+                    }
+                });
+            });
+
+            notifications.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+            if (notifications.length === 0) {
+                dropdown.innerHTML = `<div class="nav-notification-title">No new offers</div><div class="notification-item" style="cursor: default;">You have no new trade notifications at this time.</div>`;
+                renderNotificationBadge();
+                return;
+            }
+
+            dropdown.innerHTML = `<div class="nav-notification-title">New trade notifications</div>` + notifications.map(request => {
+                const cardMeta = cardMetadataCache[request.cardId] || { name: 'Unknown Card' };
+                return `
+                    <div class="notification-item" onclick="openOffersForNotification('${request.requestId}')">
+                        <div class="notification-summary">${escapeHtml(request.requesterName)} wants to ${escapeHtml(request.type)} ${escapeHtml(cardMeta.name)}</div>
+                        <div style="color:#ccc; font-size:12px;">${escapeHtml(request.offerDetails || 'No offer details provided.')}</div>
+                    </div>
+                `;
+            }).join('');
+            markTradeNotificationsSeen();
+            renderNotificationBadge();
+        }
+
+        function openOffersForNotification(requestId) {
+            closeNotificationsDropdown();
+            navigateToView('offers');
+            currentTradeOffersSection = 'received';
+            currentTradeOffersTab = 'open';
+            const allRequests = Object.values(tradeRequests).flat();
+            const request = allRequests.find(r => r.requestId === requestId);
+            if (request && request.ownerId === currentUser.id && request.status === 'accepted') {
+                currentTradeOffersTab = 'accepted';
+            }
+            renderTradeNotifications();
+        }
+
+        function markTradeNotificationsSeen() {
+            if (!currentUser) return;
+            let changed = false;
+            Object.keys(tradeRequests).forEach(cardId => {
+                (tradeRequests[cardId] || []).forEach(request => {
+                    if (request.ownerId === currentUser.id && !request.ownerSeen && ['pending', 'countered', 'accepted'].includes(request.status)) {
+                        request.ownerSeen = true;
+                        changed = true;
+                    }
+                });
+            });
+            if (changed) {
+                localStorage.setItem('mtgTradeRequests_v2', JSON.stringify(tradeRequests));
+            }
+            renderNotificationBadge();
+        }
+
+        function updateRequestOfferPlaceholder() {
+            const type = document.getElementById('requestTypeSelect').value;
+            const label = document.getElementById('requestOfferLabel');
+            const input = document.getElementById('requestOfferInput');
+            if (!label || !input) return;
+            if (type === 'buy') {
+                label.textContent = 'Buy Offer Amount';
+                input.placeholder = 'Enter a numeric amount like 12.50';
+                input.type = 'text';
+            } else {
+                label.textContent = 'Cards Offered for Trade';
+                input.placeholder = 'List one or more cards, separated by commas';
+                input.type = 'text';
+            }
         }
 
         function escapeHtml(text) {
@@ -4394,26 +4663,34 @@
                 alert('Please enter a friend username.');
                 return;
             }
+            if (currentUser && username.toLowerCase() === (currentUser.username || currentUser.displayName || '').toLowerCase()) {
+                alert('You cannot add yourself as a friend.');
+                return;
+            }
 
-            // Generate a unique friend ID
-            const newFriendId = 'user_' + Date.now();
-            
-            // Create avatar from first letter
+            const existingUser = Object.values(users).find(u => u.username && u.username.toLowerCase() === username.toLowerCase());
+            const newFriendId = existingUser ? existingUser.id : 'user_' + Date.now();
             const avatar = username.charAt(0).toUpperCase();
-            
-            // Add friend to the list
+            const friendName = existingUser ? existingUser.username : username;
+
+            if (friendsList.some(f => f.id === newFriendId || f.name.toLowerCase() === friendName.toLowerCase())) {
+                alert('This friend is already in your network.');
+                return;
+            }
+
             friendsList.push({
                 id: newFriendId,
-                name: username,
+                name: friendName,
                 status: 'connected',
                 avatar: avatar
             });
 
-            // Initialize collection data for this friend with zeros
             const allCardIds = Object.keys(collectionData);
             allCardIds.forEach(cardId => {
                 if (!collectionData[cardId]) collectionData[cardId] = {};
-                collectionData[cardId][newFriendId] = 0;
+                if (collectionData[cardId][newFriendId] === undefined) {
+                    collectionData[cardId][newFriendId] = 0;
+                }
             });
 
             updateFriendsListStorage();
@@ -4421,7 +4698,7 @@
             
             closeAddFriendModal();
             renderFriendsGrid();
-            alert(`Friend request sent to ${username}! They will appear in your network once they accept.`);
+            alert(`Friend request sent to ${friendName}. You can now explore their binder when they are connected.`);
         }
 
         function updateFriendsListStorage() {
