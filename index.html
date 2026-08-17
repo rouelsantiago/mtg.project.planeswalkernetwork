@@ -937,163 +937,6 @@
             border: 1px solid #444;
         }
 
-        /* --- DECK BUILDER PANEL STYLING --- */
-        .deckbuilder-layout {
-            display: flex;
-            gap: 25px;
-        }
-        .deck-sidebar {
-            width: 250px;
-            background-color: #1e1e1e;
-            padding: 15px;
-            border-radius: 6px;
-            border: 1px solid #333;
-        }
-        .deck-main-panel {
-            flex: 1;
-            background-color: #1e1e1e;
-            padding: 0;
-            border-radius: 6px;
-            border: 1px solid #333;
-            overflow: hidden;
-        }
-        
-        /* MOXFIELD-STYLE DYNAMIC BANNER */
-        .deck-moxfield-banner {
-            position: relative;
-            width: 100%;
-            height: 180px;
-            background-color: #252525;
-            background-size: cover;
-            background-position: center 25%;
-            display: flex;
-            align-items: flex-end;
-            border-bottom: 1px solid #333;
-        }
-        .deck-moxfield-scrim {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(to top, rgba(18,18,18,0.95) 0%, rgba(18,18,18,0.7) 50%, rgba(18,18,18,0.4) 100%);
-            z-index: 1;
-        }
-        .deck-banner-content {
-            position: relative;
-            z-index: 2;
-            padding: 20px 25px;
-            width: 100%;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-        }
-        .deck-title-meta {
-            flex: 1;
-            margin-right: 20px;
-        }
-        .deck-title-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .deck-title-container h2 {
-            margin: 0;
-            color: #ffffff;
-            font-size: 28px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-        }
-        .edit-deck-name-btn {
-            background: none;
-            border: none;
-            color: #aaa;
-            cursor: pointer;
-            font-size: 18px;
-            padding: 4px;
-            line-height: 1;
-            border-radius: 4px;
-            transition: 0.2s;
-            display: none; /* Controlled dynamically in JS */
-        }
-        .edit-deck-name-btn:hover {
-            color: #ff9e3b;
-            background-color: rgba(255, 255, 255, 0.1);
-        }
-        .rename-input-wrapper {
-            display: none; /* Controlled dynamically in JS */
-            align-items: center;
-            gap: 8px;
-        }
-        .rename-deck-input {
-            padding: 6px 12px;
-            font-size: 20px;
-            background-color: #222;
-            border: 1px solid #ff9e3b;
-            color: #fff;
-            border-radius: 4px;
-            font-weight: bold;
-            width: 100%;
-            max-width: 350px;
-        }
-        .deck-metrics-row {
-            display: flex;
-            gap: 15px;
-            font-size: 13px;
-            margin-top: 6px;
-            font-weight: bold;
-            color: #ccc;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.9);
-        }
-        .deck-metrics-pill {
-            background-color: rgba(0, 0, 0, 0.6);
-            padding: 3px 8px;
-            border-radius: 4px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .deck-inner-workspace {
-            padding: 25px;
-        }
-
-        .deck-list-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-bottom: 5px;
-            background-color: #252525;
-            transition: 0.2s;
-            border-left: 3px solid transparent;
-        }
-        .deck-list-item:hover {
-            background-color: #2d2d2d;
-        }
-        .deck-list-item.active-deck {
-            background-color: #1c3d5a;
-            border-left-color: #58a6ff;
-            color: white;
-        }
-        .deck-name-text {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            flex: 1;
-        }
-        .delete-deck-btn {
-            background: none;
-            border: none;
-            color: #ff4a4a;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
-            padding: 2px 6px;
-            border-radius: 3px;
-        }
-        .delete-deck-btn:hover {
-            background-color: rgba(255, 74, 74, 0.2);
-        }
-
         .input-btn-row {
             display: flex;
             gap: 8px;
@@ -1149,10 +992,6 @@
         .category-header:hover {
             background-color: #2d2d2d;
         }
-        .category-header.sideboard-accent {
-            color: #58a6ff;
-            border-left-color: #58a6ff;
-        }
         .category-toggle-arrow {
             font-size: 11px;
             color: #888;
@@ -1163,32 +1002,6 @@
         }
         .category-block.collapsed table {
             display: none;
-        }
-
-        /* Target Allocation Switch Toggle UI */
-        .search-target-toggle {
-            display: flex;
-            background-color: #222;
-            border: 1px solid #444;
-            border-radius: 4px;
-            padding: 2px;
-            margin-left: 10px;
-        }
-        .target-pill {
-            padding: 8px 12px;
-            font-size: 13px;
-            font-weight: bold;
-            color: #888;
-            cursor: pointer;
-            border-radius: 3px;
-            transition: 0.15s;
-        }
-        .target-pill.active {
-            background-color: #333;
-            color: #ff9e3b;
-        }
-        .target-pill.active.sideboard-target {
-            color: #58a6ff;
         }
 
         /* --- SOCIAL MEDIA FRIENDS NETWORK STYLING --- */
@@ -1449,7 +1262,7 @@
                 min-width: auto;
                 width: 100%;
             }
-            .deck-sidebar, .right-preview {
+            .right-preview {
                 width: 100%;
             }
             .offer-tab-button, .offer-subtab-button {
@@ -1495,7 +1308,6 @@
             </button>
             <div id="navDropdownMenu" class="nav-dropdown-content">
                 <div class="nav-dropdown-item" onclick="navigateToView('my-binder')">📕 My Binder</div>
-                <div class="nav-dropdown-item" onclick="navigateToView('my-decks')">⚔️ My Decks</div>
                 <div class="nav-dropdown-item" onclick="navigateToView('offers')">💬 Offers <span id="offersMenuBadge" class="offer-menu-badge" style="display:none;">0</span></div>
                 <div class="nav-dropdown-item" onclick="navigateToView('friends')">👥 Friends' Binders</div>
                 <div class="nav-dropdown-item" style="border-top: 1px solid #333; color: #ff4a4a;" onclick="logoutUser()">🚪 Logout</div>
@@ -1685,89 +1497,6 @@
                 </div>
             </div>
 
-            <div id="view-my-decks" class="app-view">
-                <div class="deckbuilder-layout">
-                    
-                    <div class="deck-sidebar">
-                        <div class="input-btn-row" style="flex-direction: column;">
-                            <input type="text" id="newDeckNameInput" class="styled-input" placeholder="Deck Name..." style="margin-bottom: 5px; width: 100%;">
-                            <div style="display: flex; gap: 5px; width: 100%;">
-                                <button class="styled-btn" style="flex: 1; font-size: 13px; padding: 10px 5px;" onclick="openCommanderSelectionModal()">Create</button>
-                                <button class="styled-btn secondary" style="flex: 1; font-size: 13px; padding: 10px 5px;" onclick="openImportWizardModal()">📥 Import</button>
-                            </div>
-                        </div>
-                        <div id="sidebarDecksContainer">
-                            </div>
-                    </div>
-                    
-                    <div class="deck-main-panel">
-                        <div id="deckBannerHeader" class="deck-moxfield-banner">
-                            <div class="deck-moxfield-scrim"></div>
-                            <div class="deck-banner-content">
-                                <div class="deck-title-meta">
-                                    <div class="deck-title-container">
-                                        <h2 id="activeDeckTitle">No Deck Selected</h2>
-                                        <button id="editDeckNameBtn" class="edit-deck-name-btn" onclick="activateDeckRenameMode()" title="Rename Deck">✏️</button>
-                                        
-                                        <div id="deckRenameWrapper" class="rename-input-wrapper">
-                                            <input type="text" id="deckRenameInput" class="rename-deck-input">
-                                            <button class="styled-btn" style="padding: 6px 12px; font-size: 13px;" onclick="saveDeckRename()">Save</button>
-                                            <button class="styled-btn secondary" style="padding: 6px 12px; font-size: 13px;" onclick="cancelDeckRename()">Cancel</button>
-                                        </div>
-                                    </div>
-                                    <div id="activeDeckIdentityText" style="font-size:12px; color:#ff9e3b; margin-top:4px; font-weight:bold;"></div>
-                                </div>
-                                <div id="deckStatsCounterRow" class="deck-metrics-row" style="display: none;">
-                                    <div class="deck-metrics-pill">Main: <span id="statCountMain" style="color:#ff9e3b;">0</span></div>
-                                    <div class="deck-metrics-pill">Sideboard: <span id="statCountSide" style="color:#58a6ff;">0</span></div>
-                                    <div class="deck-metrics-pill">Total: <span id="statCountTotal" style="color:#fff;">0</span></div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="deck-inner-workspace">
-                            <div class="input-btn-row" id="deckAddRow" style="display: none; max-width: 600px; align-items: center; margin-bottom: 25px;">
-                                <div class="search-container" style="flex: 1; margin-bottom: 0;">
-                                    <input type="text" id="deckCardSearchInput" class="search-box" placeholder="Search card name to add..." oninput="handleAutocomplete('deckCardSearchInput', 'deckDropdownMenu')" autocomplete="off">
-                                    <div id="deckDropdownMenu" class="custom-dropdown"></div>
-                                </div>
-                                <div class="search-target-toggle">
-                                    <div id="targetPillMain" class="target-pill active" onclick="setDeckSearchTarget('main')">Mainboard</div>
-                                    <div id="targetPillSide" class="target-pill sideboard-target" onclick="setDeckSearchTarget('side')">Sideboard</div>
-                                </div>
-                                <button class="styled-btn secondary" style="margin-left:10px; padding: 12px 14px; white-space: nowrap;" onclick="openExportDeckModal()">📤 Export</button>
-                            </div>
-
-                            <div id="deckStatsPanel" style="margin-bottom:18px; display:none;">
-                                <div id="avgCmcPerColor" style="display:none;"></div>
-                                <div id="manaHistogramContainer" style="background:#111; padding:12px; border-radius:8px; border:1px solid #222;">
-                                    <div id="manaHistogramLegend" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;"></div>
-                                    <svg id="manaHistogram" width="100%" height="200" viewBox="0 0 600 200" preserveAspectRatio="xMidYMid meet"></svg>
-                                    <div id="manaHistogramList" style="margin-top:10px; color:#ddd;"></div>
-                                </div>
-                            </div>
-
-                            <div id="deckCategoriesContainer">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Card Name</th>
-                                            <th>Expansion</th>
-                                            <th style="text-align: center; width: 150px;">Count in Deck</th>
-                                            <th style="text-align: center; width: 150px;">Available in Binder</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="deckCardsTableBody">
-                                        <tr><td colspan="4" style="color: #666; text-align: center; padding: 20px;">Select or create a deck profile from the left sidebar panel to begin building.</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-
             <div id="view-friends" class="app-view">
                 <div id="socialHubMain">
                     <h2>Your Connected Network</h2>
@@ -1816,80 +1545,6 @@
             <img id="rightSideImage" src="" alt="Card Preview" style="display:none; width: 100%; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.3); margin-bottom: 12px;">
             <button id="previewFaceToggleBtn" class="preview-face-toggle" style="display:none;">Show other face</button>
             <div id="previewCardDetails" style="display:none; margin-top: 10px; color:#ccc; font-size:13px; line-height:1.45; white-space: pre-wrap;"></div>
-        </div>
-    </div>
-
-    <div id="commanderModal" class="modal-backdrop" onclick="closeCommanderModalOnBackdrop(event)">
-        <div class="modal-content">
-            <div class="modal-header" style="padding: 15px; border-bottom: 1px solid #333; display: flex; flex-direction: column; gap: 12px;">
-                <div class="modal-header-top" style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3 style="margin: 0; color: #ff9e3b;">Select Deck Commander</h3>
-                    <button class="modal-close-btn" onclick="toggleCommanderModal(false)">&times;</button>
-                </div>
-                <p style="color: #aaa; font-size:12px; margin: 0;">Search must resolve to a valid Legendary Creature or rule-legal planeswalker.</p>
-                <div style="position:relative; width:100%;">
-                    <input type="text" id="commanderSearchInput" class="modal-filter-input" placeholder="Type Commander name..." oninput="handleCommanderAutocomplete()" autocomplete="off">
-                    <div id="commanderDropdownMenu" class="custom-dropdown"></div>
-                </div>
-            </div>
-            <div class="modal-body" id="commanderModalBody" style="text-align:center; padding:30px; display:none;">
-                <div style="color:#ff9e3b; font-weight:bold; font-size:16px; margin-bottom:10px;" id="selectedCommName"></div>
-                <div style="font-size:13px; color:#aaa; margin-bottom:20px;" id="selectedCommType"></div>
-                <button class="styled-btn" style="width:100%;" onclick="confirmDeckCreationWithCommander()">Confirm and Save Deck Workspace</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="importModal" class="modal-backdrop" onclick="closeImportModalOnBackdrop(event)">
-        <div class="modal-content" style="width: 650px;">
-            <div class="modal-header" style="padding: 15px; border-bottom: 1px solid #333; display: flex; flex-direction: column; gap: 12px;">
-                <div class="modal-header-top" style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3 style="margin: 0; color: #ff9e3b;">Import Raw Decklist</h3>
-                    <button class="modal-close-btn" onclick="toggleImportModal(false)">&times;</button>
-                </div>
-                <p style="color: #aaa; font-size:12px; margin: 0; line-height: 1.4;">
-                    Paste a list exported from Moxfield, Archidekt, or MtG Goldfish.<br>
-                    Format: <code>Quantity Card Name</code> (e.g. <code>1 Sol Ring</code>). Append <code>*SB*</code> or place under a <code>Sideboard</code> block to route to the sideboard.
-                </p>
-            </div>
-            <div class="modal-body">
-                <div style="margin-bottom: 12px;">
-                    <label style="font-size:13px; color: #ff9e3b; font-weight:bold;">Workspace Deck Name:</label>
-                    <input type="text" id="importDeckNameInput" class="styled-input" placeholder="Imported Deck Profile Name..." style="width: 100%; margin-top: 5px;">
-                </div>
-                <div>
-                    <label style="font-size:13px; color: #ff9e3b; font-weight:bold;">Paste List Text:</label>
-                    <textarea id="importRawTextarea" class="import-textarea" placeholder="1 Flubs, the Fool&#10;1 Sol Ring&#10;1 Cultivate&#10;1 Swan Song *SB*&#10;1 Heroic Intervention *SB*"></textarea>
-                </div>
-                <div style="margin-top:15px; display: flex; justify-content: flex-end; gap: 10px;">
-                    <button class="styled-btn secondary" onclick="toggleImportModal(false)">Cancel</button>
-                    <button id="runImportBtn" class="styled-btn" onclick="executeTextImportRoutine()">Process Import</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="exportModal" class="modal-backdrop" onclick="closeExportModalOnBackdrop(event)" style="display: none;">
-        <div class="modal-content" style="width: 650px;">
-            <div class="modal-header" style="padding: 15px; border-bottom: 1px solid #333; display: flex; flex-direction: column; gap: 12px;">
-                <div class="modal-header-top" style="display: flex; justify-content: space-between; align-items: center;">
-                    <h3 style="margin: 0; color: #ff9e3b;">Export Deck for Moxfield</h3>
-                    <button class="modal-close-btn" onclick="toggleExportModal(false)">&times;</button>
-                </div>
-                <p style="color: #aaa; font-size:12px; margin: 0; line-height: 1.4;">
-                    Export your selected deck in a Moxfield-compatible text format. Copy the text and paste it directly into Moxfield's deck import interface.
-                </p>
-            </div>
-            <div class="modal-body">
-                <div style="margin-bottom: 12px;">
-                    <label style="font-size:13px; color: #ff9e3b; font-weight:bold;">Deck Export Text</label>
-                    <textarea id="exportDeckTextarea" class="import-textarea" readonly style="height: 220px;"> </textarea>
-                </div>
-                <div style="margin-top:15px; display: flex; justify-content: flex-end; gap: 10px;">
-                    <button class="styled-btn secondary" onclick="toggleExportModal(false)">Close</button>
-                    <button class="styled-btn" onclick="copyExportDeckText()">Copy to Clipboard</button>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -1992,16 +1647,12 @@
 
     <script>
         let autocompleteTimeout;
-        let commanderTimeout;
         let currentCardData = null; 
         let currentPreviewFaceIndex = 0;
         let rightPreviewList = [];
         let rightPreviewIndex = -1;
         let currentRightPreviewData = null;
         let allPrintingsList = []; 
-        let currentActiveDeckId = null;
-        let stagingCommanderData = null; 
-        let currentDeckSearchTarget = 'main';
         let currentColorFilters = [];
         let currentColorFilterMode = 'contains';
         let currentTypeFilter = 'all';
@@ -2013,15 +1664,11 @@
         let currentTradeOffersSection = 'made';
         let currentTradeOffersTab = 'open';
         
-        // Context routing anchor variable to know whether modal swaps affect binder view or specific deck card instances
-        let activePrintingContextSource = { type: 'binder', targetId: null, zone: null };
-
         // Keeps track of the collapsed status of individual category headers
         let collapsedCategoriesTracker = {};
 
         // Initial Data Registers
         let collectionData = JSON.parse(localStorage.getItem('mtgCollectionData_v2')) || {};
-        let decklistsData = JSON.parse(localStorage.getItem('mtgDecklistsData_v2')) || {};
         let recentSearches = JSON.parse(localStorage.getItem('mtgRecentSearches')) || [];
         let cardMetadataCache = JSON.parse(localStorage.getItem('mtgCardMetadataCache_v2')) || {};
         let friendsList = JSON.parse(localStorage.getItem('mtgFriendsList_v2')) || [];
@@ -2204,7 +1851,7 @@
                 console.log('Supabase session before remote load', sessionResult);
                 const { data, error } = await supabaseClient
                     .from('user_data')
-                    .select('binder,decklists,friends_list')
+                    .select('binder,friends_list')
                     .eq('user_id', userId)
                     .maybeSingle();
                 if (error) {
@@ -2234,16 +1881,10 @@
                     collectionData[cardId][userId] = remoteData.binder[cardId] || 0;
                 });
             }
-            if (remoteData.decklists) {
-                Object.keys(remoteData.decklists).forEach(deckId => {
-                    decklistsData[deckId] = remoteData.decklists[deckId];
-                });
-            }
             if (Array.isArray(remoteData.friendsList)) {
                 friendsList = remoteData.friendsList;
             }
             localStorage.setItem('mtgCollectionData_v2', JSON.stringify(collectionData));
-            localStorage.setItem('mtgDecklistsData_v2', JSON.stringify(decklistsData));
             localStorage.setItem('mtgFriendsList_v2', JSON.stringify(friendsList));
         }
 
@@ -2254,15 +1895,8 @@
                 const qty = collectionData[cardId][userId] || 0;
                 if (qty > 0) binder[cardId] = qty;
             });
-            const decks = {};
-            Object.keys(decklistsData).forEach(deckId => {
-                if (decklistsData[deckId].ownerId === userId) {
-                    decks[deckId] = decklistsData[deckId];
-                }
-            });
             return {
                 binder,
-                decklists: decks,
                 friendsList
             };
         }
@@ -2282,7 +1916,6 @@
                     .upsert({
                         user_id: currentUser.id,
                         binder: payload.binder,
-                        decklists: payload.decklists,
                         friends_list: payload.friendsList
                     }, { onConflict: 'user_id' });
                 if (error) {
@@ -2313,7 +1946,6 @@
                 navigateToView('home');
             }
             ensureCollectionDataStructure();
-            ensureDeckOwnershipDataStructure();
         }
 
         window.onload = function() {
@@ -2325,7 +1957,6 @@
                 updateFilterModeUI();
                 updateBinderViewUI();
                 renderCollectionTable();
-                renderDeckSidebar();
                 renderFriendsGrid();
                 renderNotificationBadge();
                 // Temporary debug button to inspect stored users and collection data
@@ -2383,10 +2014,6 @@
             if (viewId === 'my-binder') {
                 renderCollectionTable();
                 if (currentCardData) displayResults(currentCardData);
-            } else if (viewId === 'my-decks') {
-                cancelDeckRename(); // Protect state when navigating away
-                renderDeckSidebar();
-                renderActiveDeckComposition();
             } else if (viewId === 'offers') {
                 currentTradeOffersSection = 'made';
                 currentTradeOffersTab = 'open';
@@ -2401,7 +2028,7 @@
 
         document.addEventListener('click', function(event) {
             document.getElementById('navDropdownMenu').style.display = 'none';
-            if (!event.target.closest('.search-container') && !event.target.closest('#commanderModal') && !event.target.closest('#importModal')) {
+            if (!event.target.closest('.search-container')) {
                 document.querySelectorAll('.custom-dropdown').forEach(el => el.style.display = 'none');
             }
             if (!event.target.closest('.action-dots-btn')) {
@@ -2441,8 +2068,6 @@
                                 
                                 if (inputId === 'cardSearch') {
                                     executeSearch(cardName);
-                                } else if (inputId === 'deckCardSearchInput') {
-                                    showAddToDeckChoice(cardName, document.getElementById('deckCardSearchInput'));
                                 }
                             };
                             dropdown.appendChild(item);
@@ -2450,327 +2075,6 @@
                     } else { dropdown.style.display = 'none'; }
                 } catch (e) { console.log(e); }
             }, 250);
-        }
-
-        /* --- COMMANDER RESOLUTION FLOW ENGINE --- */
-        function openCommanderSelectionModal() {
-            const nameInput = document.getElementById('newDeckNameInput').value.trim();
-            if (!nameInput) { alert("Please input a deck workspace name first."); return; }
-            stagingCommanderData = null;
-            document.getElementById('commanderSearchInput').value = '';
-            document.getElementById('commanderModalBody').style.display = 'none';
-            toggleCommanderModal(true);
-        }
-
-        function toggleCommanderModal(show) {
-            document.getElementById('commanderModal').style.display = show ? 'flex' : 'none';
-        }
-
-        function closeCommanderModalOnBackdrop(e) {
-            if (e.target.id === 'commanderModal') toggleCommanderModal(false);
-        }
-
-        function handleCommanderAutocomplete() {
-            const inputVal = document.getElementById('commanderSearchInput').value;
-            const dropdown = document.getElementById('commanderDropdownMenu');
-            clearTimeout(commanderTimeout);
-            
-            if (inputVal.length < 2) { dropdown.style.display = 'none'; return; }
-            
-            commanderTimeout = setTimeout(async () => {
-                try {
-                    const q = `${inputVal} is:commander`;
-                    const response = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}`);
-                    if (!response.ok) { dropdown.style.display = 'none'; return; }
-                    
-                    const data = await response.json();
-                    dropdown.innerHTML = '';
-                    if (data.data && data.data.length > 0) {
-                        dropdown.style.display = 'block';
-                        data.data.slice(0, 8).forEach(card => {
-                            const item = document.createElement('div');
-                            item.className = 'dropdown-item';
-                            item.textContent = card.name;
-                            item.onclick = () => selectStagingCommander(card);
-                            dropdown.appendChild(item);
-                        });
-                    } else { dropdown.style.display = 'none'; }
-                } catch (e) { console.log(e); }
-            }, 300);
-        }
-
-        function selectStagingCommander(card) {
-            stagingCommanderData = card;
-            document.getElementById('commanderDropdownMenu').style.display = 'none';
-            document.getElementById('commanderSearchInput').value = card.name;
-            
-            document.getElementById('selectedCommName').textContent = card.name;
-            document.getElementById('selectedCommType').textContent = card.type_line;
-            document.getElementById('commanderModalBody').style.display = 'block';
-            
-            cacheCardMetadata(card);
-        }
-
-        function confirmDeckCreationWithCommander() {
-            if (!stagingCommanderData) return;
-            const name = document.getElementById('newDeckNameInput').value.trim();
-            const deckId = 'deck_' + Date.now();
-            
-            let bannerArtUrl = '';
-            if (stagingCommanderData.image_uris && stagingCommanderData.image_uris.art_crop) {
-                bannerArtUrl = stagingCommanderData.image_uris.art_crop;
-            } else if (stagingCommanderData.card_faces && stagingCommanderData.card_faces[0].image_uris) {
-                bannerArtUrl = stagingCommanderData.card_faces[0].image_uris.art_crop;
-            }
-
-            decklistsData[deckId] = {
-                name: name,
-                ownerId: getCurrentUserId(),
-                commanderId: stagingCommanderData.id,
-                commanderColorIdentity: stagingCommanderData.color_identity || [],
-                commanderBannerArt: bannerArtUrl,
-                cards: {},       
-                sideboard: {}    
-            };
-            
-            localStorage.setItem('mtgDecklistsData_v2', JSON.stringify(decklistsData));
-            document.getElementById('newDeckNameInput').value = '';
-            toggleCommanderModal(false);
-            renderDeckSidebar();
-            selectDeck(deckId);
-        }
-
-        /* --- PLAIN TEXT EXPORT/IMPORT SYSTEM WIZARD ROUTINES --- */
-        function openImportWizardModal() {
-            document.getElementById('importDeckNameInput').value = '';
-            document.getElementById('importRawTextarea').value = '';
-            document.getElementById('runImportBtn').disabled = false;
-            document.getElementById('runImportBtn').textContent = "Process Import";
-            toggleImportModal(true);
-        }
-
-        function toggleImportModal(show) {
-            document.getElementById('importModal').style.display = show ? 'flex' : 'none';
-        }
-
-        function closeImportModalOnBackdrop(e) {
-            if (e.target.id === 'importModal') toggleImportModal(false);
-        }
-
-        async function executeTextImportRoutine() {
-            const rawName = document.getElementById('importDeckNameInput').value.trim();
-            const rawText = document.getElementById('importRawTextarea').value;
-            const processBtn = document.getElementById('runImportBtn');
-            
-            if (!rawName) { alert("Please allocate a target name to your new deck build profile."); return; }
-            if (!rawText.trim()) { alert("The copy-paste field cannot be blank."); return; }
-
-            processBtn.disabled = true;
-            processBtn.textContent = "Processing Async Queue...";
-
-            const lines = rawText.split('\n');
-            
-            let importedMainboard = {};
-            let importedSideboard = {};
-            let detectedCommanderCardObj = null;
-            let currentBlockAreaMode = 'main'; 
-
-            for (let line of lines) {
-                let cleanLine = line.trim();
-                if (!cleanLine) continue;
-
-                let lowerLine = cleanLine.toLowerCase();
-                if (lowerLine.startsWith('#') || lowerLine.startsWith('//')) {
-                    if (lowerLine.includes('sideboard') || lowerLine.includes('side')) {
-                        currentBlockAreaMode = 'side';
-                    } else if (lowerLine.includes('commander') || lowerLine.includes('cmdr')) {
-                        currentBlockAreaMode = 'commander';
-                    } else {
-                        currentBlockAreaMode = 'main';
-                    }
-                    continue;
-                }
-
-                const matchResult = cleanLine.match(/^(\d+)\s+([^#\*\(\[]+)/);
-                if (!matchResult) continue;
-
-                let quantity = parseInt(matchResult[1], 10) || 1;
-                let candidateName = matchResult[2].trim();
-
-                if (candidateName.endsWith('x')) candidateName = candidateName.slice(0, -1).trim();
-
-                let allocationFlag = currentBlockAreaMode;
-                let lowerFullLine = cleanLine.toLowerCase();
-
-                if (lowerFullLine.includes('*sb*') || lowerFullLine.includes('sideboard') || lowerFullLine.includes('(sb)')) {
-                    allocationFlag = 'side';
-                } else if (lowerFullLine.includes('*cmdr*') || lowerFullLine.includes('commander') || lowerFullLine.includes('(cmdr)')) {
-                    allocationFlag = 'commander';
-                }
-
-                try {
-                    const fetchResponse = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(candidateName)}`);
-                    if (fetchResponse.ok) {
-                        const cardData = await fetchResponse.json();
-                        cacheCardMetadata(cardData);
-
-                        if (allocationFlag === 'commander' && !detectedCommanderCardObj) {
-                            detectedCommanderCardObj = cardData;
-                        } else if (allocationFlag === 'side') {
-                            if (!importedSideboard[cardData.id]) importedSideboard[cardData.id] = 0;
-                            importedSideboard[cardData.id] += quantity;
-                        } else {
-                            if (!importedMainboard[cardData.id]) importedMainboard[cardData.id] = 0;
-                            importedMainboard[cardData.id] += quantity;
-                        }
-                    }
-                } catch (err) {
-                    console.log(`Failed resolution pass for card entry: ${candidateName}`, err);
-                }
-            }
-
-            const deckId = 'deck_' + Date.now();
-            let bannerArtUrl = '';
-            let commanderId = null;
-            let colorIdentity = [];
-
-            if (detectedCommanderCardObj) {
-                commanderId = detectedCommanderCardObj.id;
-                colorIdentity = detectedCommanderCardObj.color_identity || [];
-                if (detectedCommanderCardObj.image_uris && detectedCommanderCardObj.image_uris.art_crop) {
-                    bannerArtUrl = detectedCommanderCardObj.image_uris.art_crop;
-                }
-            } else {
-                let sampleCardIds = Object.keys(importedMainboard);
-                if (sampleCardIds.length > 0) {
-                    let firstObj = cardMetadataCache[sampleCardIds[0]];
-                    if (firstObj) colorIdentity = firstObj.color_identity || [];
-                }
-            }
-
-            decklistsData[deckId] = {
-                name: rawName,
-                ownerId: getCurrentUserId(),
-                commanderId: commanderId,
-                commanderColorIdentity: colorIdentity,
-                commanderBannerArt: bannerArtUrl,
-                cards: importedMainboard,
-                sideboard: importedSideboard
-            };
-
-            localStorage.setItem('mtgDecklistsData_v2', JSON.stringify(decklistsData));
-            toggleImportModal(false);
-            renderDeckSidebar();
-            selectDeck(deckId);
-        }
-
-        function openExportDeckModal() {
-            if (!currentActiveDeckId || !decklistsData[currentActiveDeckId]) {
-                alert('Select a deck to export first.');
-                return;
-            }
-            const exportTextarea = document.getElementById('exportDeckTextarea');
-            exportTextarea.value = generateMoxfieldDeckExportText(decklistsData[currentActiveDeckId]);
-            toggleExportModal(true);
-        }
-
-        function toggleExportModal(show) {
-            const modal = document.getElementById('exportModal');
-            if (!modal) return;
-            modal.style.display = show ? 'flex' : 'none';
-        }
-
-        function closeExportModalOnBackdrop(e) {
-            if (e.target.id === 'exportModal') toggleExportModal(false);
-        }
-
-        function copyExportDeckText() {
-            const exportTextarea = document.getElementById('exportDeckTextarea');
-            if (!exportTextarea) return;
-            exportTextarea.select();
-            document.execCommand('copy');
-            alert('Deck export text copied to clipboard. Paste it into Moxfield.');
-        }
-
-        function generateMoxfieldDeckExportText(deck) {
-            const lines = [];
-            if (deck.name) {
-                lines.push(`# ${deck.name}`);
-            }
-            if (deck.commanderId && cardMetadataCache[deck.commanderId]) {
-                lines.push('Commander');
-                lines.push(`1 ${cardMetadataCache[deck.commanderId].name}`);
-            }
-
-            const mainIds = Object.keys(deck.cards || {});
-            if (mainIds.length > 0) {
-                lines.push('Mainboard');
-                mainIds.sort((a,b) => (cardMetadataCache[a]?.name || '').localeCompare(cardMetadataCache[b]?.name || '')).forEach(cardId => {
-                    const qty = deck.cards[cardId] || 0;
-                    if (qty > 0) {
-                        const name = cardMetadataCache[cardId]?.name || 'Unknown Card';
-                        lines.push(`${qty} ${name}`);
-                    }
-                });
-            }
-
-            const sideIds = Object.keys(deck.sideboard || {});
-            if (sideIds.length > 0) {
-                lines.push('Sideboard');
-                sideIds.sort((a,b) => (cardMetadataCache[a]?.name || '').localeCompare(cardMetadataCache[b]?.name || '')).forEach(cardId => {
-                    const qty = deck.sideboard[cardId] || 0;
-                    if (qty > 0) {
-                        const name = cardMetadataCache[cardId]?.name || 'Unknown Card';
-                        lines.push(`${qty} ${name}`);
-                    }
-                });
-            }
-
-            return lines.join('\n');
-        }
-
-        /* --- DECK EDITING & RENAME MODULE FLOWS --- */
-        function activateDeckRenameMode() {
-            if (!currentActiveDeckId) return;
-            const currentName = decklistsData[currentActiveDeckId].name;
-            
-            document.getElementById('activeDeckTitle').style.display = 'none';
-            document.getElementById('editDeckNameBtn').style.display = 'none';
-            
-            const wrapper = document.getElementById('deckRenameWrapper');
-            const input = document.getElementById('deckRenameInput');
-            
-            wrapper.style.display = 'flex';
-            input.value = currentName;
-            input.focus();
-            input.select();
-            
-            // Allow processing with Enter key straight from form field
-            input.onkeypress = function(e) {
-                if (e.key === 'Enter') saveDeckRename();
-            };
-        }
-
-        function saveDeckRename() {
-            if (!currentActiveDeckId) return;
-            const newName = document.getElementById('deckRenameInput').value.trim();
-            if (!newName) { alert("Deck workspace identifier name cannot be empty."); return; }
-            
-            decklistsData[currentActiveDeckId].name = newName;
-            localStorage.setItem('mtgDecklistsData_v2', JSON.stringify(decklistsData));
-            
-            // Tear down UI and restore baseline header displays
-            document.getElementById('activeDeckTitle').textContent = newName;
-            cancelDeckRename();
-            renderDeckSidebar();
-        }
-
-        function cancelDeckRename() {
-            document.getElementById('deckRenameWrapper').style.display = 'none';
-            document.getElementById('activeDeckTitle').style.display = 'block';
-            if (currentActiveDeckId) {
-                document.getElementById('editDeckNameBtn').style.display = 'inline-block';
-            }
         }
 
         /* --- BASIC LOOKUP DISPATCHERS --- */
@@ -3909,277 +3213,6 @@
             }
         }
 
-        /* --- DECKBUILDER SYSTEM INFRASTRUCTURE --- */
-        function setDeckSearchTarget(target) {
-            currentDeckSearchTarget = target;
-            document.getElementById('targetPillMain').classList.toggle('active', target === 'main');
-            document.getElementById('targetPillSide').classList.toggle('active', target === 'side');
-        }
-
-        function deleteDeckProfile(event, deckId) {
-            event.stopPropagation();
-            if(!confirm(`Are you sure you want to permanently delete "${decklistsData[deckId].name}"?`)) return;
-            
-            delete decklistsData[deckId];
-            localStorage.setItem('mtgDecklistsData_v2', JSON.stringify(decklistsData));
-            
-            if(currentActiveDeckId === deckId) {
-                currentActiveDeckId = null;
-                document.getElementById('activeDeckTitle').textContent = "No Deck Selected";
-                document.getElementById('editDeckNameBtn').style.display = 'none';
-                document.getElementById('activeDeckIdentityText').textContent = "";
-                document.getElementById('deckAddRow').style.display = 'none';
-                document.getElementById('deckStatsCounterRow').style.display = 'none';
-                document.getElementById('deckBannerHeader').style.backgroundImage = 'none';
-                cancelDeckRename();
-            }
-            
-            renderDeckSidebar();
-            renderActiveDeckComposition();
-        }
-
-        function renderDeckSidebar() {
-            const container = document.getElementById('sidebarDecksContainer');
-            if(!container) return;
-            container.innerHTML = '';
-            const currentUserId = getCurrentUserId();
-            if (currentActiveDeckId && (!decklistsData[currentActiveDeckId] || decklistsData[currentActiveDeckId].ownerId !== currentUserId)) {
-                currentActiveDeckId = null;
-            }
-            const deckIds = Object.keys(decklistsData).filter(id => decklistsData[id].ownerId === currentUserId);
-            
-            if(deckIds.length === 0) {
-                container.innerHTML = '<p style="color:#666; font-size:13px; text-align:center; padding:10px 0;">No deck builds compiled.</p>';
-                return;
-            }
-            
-            deckIds.forEach(id => {
-                const div = document.createElement('div');
-                div.className = `deck-list-item ${currentActiveDeckId === id ? 'active-deck' : ''}`;
-                div.onclick = () => selectDeck(id);
-                
-                div.innerHTML = `
-                    <span class="deck-name-text">⚔️ ${decklistsData[id].name}</span>
-                    <button class="delete-deck-btn" onclick="deleteDeckProfile(event, '${id}')">×</button>
-                `;
-                container.appendChild(div);
-            });
-            // Show or hide stats panel depending on whether a deck exists for this user
-            document.getElementById('deckStatsPanel').style.display = deckIds.length > 0 ? 'block' : 'none';
-        }
-
-        function selectDeck(deckId) {
-            if (!decklistsData[deckId] || decklistsData[deckId].ownerId !== getCurrentUserId()) return;
-            cancelDeckRename(); // Safely teardown open editing nodes when jumping records
-            currentActiveDeckId = deckId;
-            const activeDeck = decklistsData[deckId];
-            
-            if (!activeDeck.sideboard) activeDeck.sideboard = {};
-            if (!activeDeck.cards) activeDeck.cards = {};
-
-            document.getElementById('activeDeckTitle').textContent = activeDeck.name;
-            document.getElementById('editDeckNameBtn').style.display = 'inline-block';
-            
-            const identityArray = activeDeck.commanderColorIdentity || [];
-            document.getElementById('activeDeckIdentityText').textContent = `Commander Identity: ${identityArray.length === 0 ? 'Colorless (C)' : identityArray.join(', ')}`;
-            
-            const bannerElement = document.getElementById('deckBannerHeader');
-            if (activeDeck.commanderBannerArt) {
-                bannerElement.style.backgroundImage = `url('${activeDeck.commanderBannerArt}')`;
-            } else {
-                bannerElement.style.backgroundImage = 'none';
-            }
-
-            document.getElementById('deckAddRow').style.display = 'flex';
-            document.getElementById('deckStatsCounterRow').style.display = 'flex';
-            
-            setDeckSearchTarget('main'); 
-            renderDeckSidebar();
-            renderActiveDeckComposition();
-        }
-
-        async function addCardToActiveDeckDirect(cardName, targetArea) {
-            if(!currentActiveDeckId) return;
-            targetArea = targetArea || currentDeckSearchTarget || 'main';
-            try {
-                const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName.trim())}`);
-                if(response.ok) {
-                    const data = await response.json();
-                    cacheCardMetadata(data);
-
-                    const targetDeck = decklistsData[currentActiveDeckId];
-                    if(!targetDeck.sideboard) targetDeck.sideboard = {};
-                    if(!targetDeck.cards) targetDeck.cards = {};
-
-                    if (targetArea === 'side') {
-                        if(!targetDeck.sideboard[data.id]) targetDeck.sideboard[data.id] = 0;
-                        targetDeck.sideboard[data.id]++;
-                    } else {
-                        if(!targetDeck.cards[data.id]) targetDeck.cards[data.id] = 0;
-                        targetDeck.cards[data.id]++;
-                    }
-                    
-                    localStorage.setItem('mtgDecklistsData_v2', JSON.stringify(decklistsData));
-                    document.getElementById('deckCardSearchInput').value = '';
-                    renderActiveDeckComposition();
-                }
-            } catch(e){ console.log(e); }
-        }
-
-        function showAddToDeckChoice(cardName, inputElem) {
-            // remove any existing chooser
-            const existing = document.getElementById('addToDeckChoice');
-            if (existing) existing.remove();
-
-            const rect = inputElem.getBoundingClientRect();
-            const chooser = document.createElement('div');
-            chooser.id = 'addToDeckChoice';
-            chooser.style.position = 'fixed';
-            chooser.style.left = (rect.left) + 'px';
-            chooser.style.top = (rect.bottom + 6) + 'px';
-            chooser.style.zIndex = 4000;
-            chooser.style.background = '#121212';
-            chooser.style.border = '1px solid #333';
-            chooser.style.padding = '8px';
-            chooser.style.borderRadius = '6px';
-            chooser.style.display = 'flex';
-            chooser.style.gap = '8px';
-
-            const mainBtn = document.createElement('button');
-            mainBtn.className = 'styled-btn';
-            mainBtn.textContent = 'Add to Main';
-            mainBtn.onclick = function(e) {
-                e.stopPropagation();
-                addCardToActiveDeckDirect(cardName, 'main');
-                chooser.remove();
-            };
-
-            const sideBtn = document.createElement('button');
-            sideBtn.className = 'styled-btn secondary';
-            sideBtn.textContent = 'Add to Sideboard';
-            sideBtn.onclick = function(e) {
-                e.stopPropagation();
-                addCardToActiveDeckDirect(cardName, 'side');
-                chooser.remove();
-            };
-
-            const cancelBtn = document.createElement('button');
-            cancelBtn.className = 'styled-btn';
-            cancelBtn.style.background = 'transparent';
-            cancelBtn.style.border = '1px solid #333';
-            cancelBtn.style.color = '#ccc';
-            cancelBtn.textContent = 'Cancel';
-            cancelBtn.onclick = function() { chooser.remove(); };
-
-            chooser.appendChild(mainBtn);
-            chooser.appendChild(sideBtn);
-            chooser.appendChild(cancelBtn);
-            document.body.appendChild(chooser);
-
-            // dismiss when clicking elsewhere
-            const onDocClick = function(ev) {
-                if (!chooser.contains(ev.target) && ev.target !== inputElem) {
-                    chooser.remove();
-                    document.removeEventListener('click', onDocClick);
-                }
-            };
-            setTimeout(() => document.addEventListener('click', onDocClick), 10);
-        }
-
-        function adjustCardInDeck(cardId, amount, areaTarget) {
-            if(!currentActiveDeckId) return;
-            const targetDeck = decklistsData[currentActiveDeckId];
-            
-            if (areaTarget === 'side') {
-                if (targetDeck.sideboard && targetDeck.sideboard[cardId] !== undefined) {
-                    targetDeck.sideboard[cardId] += amount;
-                    if(targetDeck.sideboard[cardId] <= 0) delete targetDeck.sideboard[cardId];
-                }
-            } else {
-                if (targetDeck.cards && targetDeck.cards[cardId] !== undefined) {
-                    targetDeck.cards[cardId] += amount;
-                    if(targetDeck.cards[cardId] <= 0) delete targetDeck.cards[cardId];
-                }
-            }
-            
-            localStorage.setItem('mtgDecklistsData_v2', JSON.stringify(decklistsData));
-            renderActiveDeckComposition();
-        }
-
-        /* --- DECK EDITING CONTROL OPERATIONS (3-DOTS ARCHITECTURE) --- */
-        function changeCardZoneDestination(cardId, currentZone) {
-            if(!currentActiveDeckId) return;
-            const targetDeck = decklistsData[currentActiveDeckId];
-            
-            if(currentZone === 'main') {
-                const count = targetDeck.cards[cardId] || 1;
-                delete targetDeck.cards[cardId];
-                targetDeck.sideboard[cardId] = (targetDeck.sideboard[cardId] || 0) + count;
-            } else {
-                const count = targetDeck.sideboard[cardId] || 1;
-                delete targetDeck.sideboard[cardId];
-                targetDeck.cards[cardId] = (targetDeck.cards[cardId] || 0) + count;
-            }
-            
-            localStorage.setItem('mtgDecklistsData_v2', JSON.stringify(decklistsData));
-            renderActiveDeckComposition();
-        }
-
-        function removeCardFromDeckCompletely(cardId, zone) {
-            if(!currentActiveDeckId) return;
-            const targetDeck = decklistsData[currentActiveDeckId];
-            if (zone === 'side') delete targetDeck.sideboard[cardId];
-            else delete targetDeck.cards[cardId];
-            
-            localStorage.setItem('mtgDecklistsData_v2', JSON.stringify(decklistsData));
-            renderActiveDeckComposition();
-        }
-
-        function promoteCardToDeckCommander(cardId, sourceZone) {
-            if(!currentActiveDeckId) return;
-            const targetDeck = decklistsData[currentActiveDeckId];
-            const meta = cardMetadataCache[cardId];
-            
-            if(!meta) return;
-
-            if (sourceZone === 'side') {
-                if(targetDeck.sideboard[cardId] > 1) targetDeck.sideboard[cardId]--;
-                else delete targetDeck.sideboard[cardId];
-            } else {
-                if(targetDeck.cards[cardId] > 1) targetDeck.cards[cardId]--;
-                else delete targetDeck.cards[cardId];
-            }
-
-            if (targetDeck.commanderId) {
-                const oldCommId = targetDeck.commanderId;
-                targetDeck.cards[oldCommId] = (targetDeck.cards[oldCommId] || 0) + 1;
-            }
-
-            targetDeck.commanderId = cardId;
-            targetDeck.commanderColorIdentity = meta.color_identity || [];
-            targetDeck.commanderBannerArt = meta.art_crop || '';
-
-            document.getElementById('activeDeckIdentityText').textContent = `Commander Identity: ${meta.color_identity.length === 0 ? 'Colorless (C)' : meta.color_identity.join(', ')}`;
-            if (meta.art_crop) {
-                document.getElementById('deckBannerHeader').style.backgroundImage = `url('${meta.art_crop}')`;
-            }
-
-            localStorage.setItem('mtgDecklistsData_v2', JSON.stringify(decklistsData));
-            renderActiveDeckComposition();
-        }
-
-        async function triggerDeckCardPrintingSwitchModal(cardId, zone) {
-            activePrintingContextSource = { type: 'deck', targetId: cardId, zone: zone };
-            try {
-                const response = await fetch(`https://api.scryfall.com/cards/${cardId}`);
-                if(response.ok) {
-                    currentCardData = await response.json();
-                    await fetchPrintingsData(currentCardData.prints_search_uri);
-                    toggleModal(true);
-                }
-            } catch(e) { console.log(e); }
-        }
-
         /* --- COLLAPSIBLE CONTENT SYSTEM BLOCKS --- */
         function toggleCategoryCollapseState(categoryKey) {
             collapsedCategoriesTracker[categoryKey] = !collapsedCategoriesTracker[categoryKey];
@@ -4187,220 +3220,6 @@
             const blockElement = document.getElementById(`block_container_${categoryKey}`);
             if (blockElement) {
                 blockElement.classList.toggle('collapsed', collapsedCategoriesTracker[categoryKey]);
-            }
-        }
-
-        /* --- CATEGORIZED RENDER ENGINE WITH COLOR IDENTITY CHECKERS & SIDEBOARD METRICS --- */
-        function renderActiveDeckComposition() {
-            const container = document.getElementById('deckCategoriesContainer');
-            if(!container) return;
-            
-            if(!currentActiveDeckId) {
-                container.innerHTML = `
-                    <table>
-                        <thead>
-                            <tr><th>Card Name</th><th>Expansion</th><th style="text-align:center; width:150px;">Count</th><th style="text-align:center; width:150px;">Available</th></tr>
-                        </thead>
-                        <tbody>
-                            <tr><td colspan="4" style="color:#666; text-align:center; padding:20px;">Select or create a deck profile from the left sidebar panel to begin building.</td></tr>
-                        </tbody>
-                    </table>`;
-                return;
-            }
-            
-            const activeDeck = decklistsData[currentActiveDeckId];
-            const identityAllowed = activeDeck.commanderColorIdentity || [];
-
-            // Compute and render deck stats UI
-            try { computeAndRenderDeckStats(activeDeck); } catch(e) { console.log('deck stats error', e); }
-            
-            if (!activeDeck.sideboard) activeDeck.sideboard = {};
-            if (!activeDeck.cards) activeDeck.cards = {};
-
-            let structuredCategories = {
-                "Commander": [],
-                "Creatures": [],
-                "Instants": [],
-                "Sorceries": [],
-                "Artifacts": [],
-                "Enchantments": [],
-                "Lands": []
-            };
-
-            let sideboardCategoryList = [];
-            let sumMainCount = 0;
-            let sumSideCount = 0;
-
-            if (activeDeck.commanderId) {
-                const commMeta = cardMetadataCache[activeDeck.commanderId] || { name: 'Unknown Commander', set: '???' };
-                structuredCategories["Commander"].push({ id: activeDeck.commanderId, meta: commMeta, count: 1, isCommanderRow: true });
-                sumMainCount++; 
-            }
-
-            const deckCardIds = Object.keys(activeDeck.cards);
-            deckCardIds.forEach(id => {
-                const meta = cardMetadataCache[id] || { name: 'Unknown', set: '???', type: '' };
-                const typeLine = (meta.type || '').toLowerCase();
-                const countVal = activeDeck.cards[id];
-                sumMainCount += countVal;
-                
-                let assigned = false;
-                if (typeLine.includes('land')) { structuredCategories["Lands"].push({ id: id, meta: meta, count: countVal }); assigned = true; }
-                else if (typeLine.includes('creature')) { structuredCategories["Creatures"].push({ id: id, meta: meta, count: countVal }); assigned = true; }
-                else if (typeLine.includes('instant')) { structuredCategories["Instants"].push({ id: id, meta: meta, count: countVal }); assigned = true; }
-                else if (typeLine.includes('sorcery')) { structuredCategories["Sorceries"].push({ id: id, meta: meta, count: countVal }); assigned = true; }
-                else if (typeLine.includes('artifact')) { structuredCategories["Artifacts"].push({ id: id, meta: meta, count: countVal }); assigned = true; }
-                else if (typeLine.includes('enchantment')) { structuredCategories["Enchantments"].push({ id: id, meta: meta, count: countVal }); assigned = true; }
-                
-                if(!assigned) {
-                    structuredCategories["Creatures"].push({ id: id, meta: meta, count: countVal });
-                }
-            });
-
-            const sideCardIds = Object.keys(activeDeck.sideboard);
-            sideCardIds.forEach(id => {
-                const meta = cardMetadataCache[id] || { name: 'Unknown', set: '???', type: '' };
-                const countVal = activeDeck.sideboard[id];
-                sumSideCount += countVal;
-                sideboardCategoryList.push({ id: id, meta: meta, count: countVal, isSideboardItem: true });
-            });
-
-            document.getElementById('statCountMain').textContent = sumMainCount;
-            document.getElementById('statCountSide').textContent = sumSideCount;
-            document.getElementById('statCountTotal').textContent = (sumMainCount + sumSideCount);
-
-            container.innerHTML = '';
-            
-            Object.keys(structuredCategories).forEach(categoryName => {
-                const list = structuredCategories[categoryName];
-                if (list.length === 0) return;
-                renderTableBlock(categoryName, list, false);
-            });
-
-            if (sideboardCategoryList.length > 0) {
-                renderTableBlock("Sideboard", sideboardCategoryList, true);
-            }
-
-            function renderTableBlock(categoryName, itemsList, isSideboardContext) {
-                const categoryKey = categoryName.replace(/\s+/g, '_').toLowerCase();
-                const isCollapsed = !!collapsedCategoriesTracker[categoryKey];
-
-                const blockWrapper = document.createElement('div');
-                blockWrapper.className = `category-block ${isCollapsed ? 'collapsed' : ''}`;
-                blockWrapper.id = `block_container_${categoryKey}`;
-
-                const catHeader = document.createElement('div');
-                catHeader.className = `category-header ${isSideboardContext ? 'sideboard-accent' : ''}`;
-                let catSum = itemsList.reduce((acc, item) => acc + item.count, 0);
-                
-                catHeader.innerHTML = `
-                    <span>${categoryName} (${catSum})</span>
-                    <span class="category-toggle-arrow">▼</span>
-                `;
-                catHeader.onclick = () => toggleCategoryCollapseState(categoryKey);
-                blockWrapper.appendChild(catHeader);
-
-                const table = document.createElement('table');
-                table.innerHTML = `
-                    <thead>
-                        <tr>
-                            <th>Card Name</th>
-                            <th style="width:100px;">Expansion</th>
-                            <th style="text-align: center; width: 150px;">Count in Deck</th>
-                            <th style="text-align: center; width: 150px;">Available in Binder</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                `;
-                const tbody = table.querySelector('tbody');
-                itemsList.sort((a, b) => a.meta.name.localeCompare(b.meta.name));
-
-                itemsList.forEach((item, innerIdx) => {
-                    const cardId = item.id;
-                    const curId = getCurrentUserId();
-                    const binderQty = (collectionData[cardId] && collectionData[cardId][curId]) ? collectionData[cardId][curId] : 0;
-                    const dropdownMenuId = `drop_deck_${categoryKey}_${innerIdx}`;
-                    
-                    let badgesHtml = '';
-                    const cardIdentity = item.meta.color_identity || [];
-                    const colorInvalid = cardIdentity.some(color => !identityAllowed.includes(color));
-                    
-                    if (colorInvalid && !item.isCommanderRow) {
-                        badgesHtml += `<span class="status-badge invalid" title="Card colors break Commander identity rules.">Invalid Color</span>`;
-                    }
-                    if (binderQty === 0 && !item.isCommanderRow) {
-                        badgesHtml += `<span class="status-badge unowned">Not Owned</span>`;
-                    }
-                    if (item.isCommanderRow) {
-                        badgesHtml += `<span class="status-badge commander">Commander</span>`;
-                    }
-
-                    const row = document.createElement('tr');
-                    
-                    if (item.isCommanderRow) {
-                        const binderCellClass = 'interactive-pool-total';
-                        const binderCellCursor = 'cursor: pointer;';
-                        const binderCellColor = binderQty > 0 ? 'color: #ff9e3b;' : 'color: #aaa;';
-                        const binderClickHandler = `onclick="openBinderLocationsModal('${cardId}')"`;
-                        
-                        row.innerHTML = `
-                            <td>
-                                <div class="name-cell-wrapper">
-                                    <div class="card-name-group">
-                                        <span class="clickable-card-name" data-card-id="${cardId}" onclick="openCardModalFromContainer('${cardId}', this)">${item.meta.name}</span>
-                                        ${badgesHtml}
-                                    </div>
-                                    <button class="action-dots-btn" onclick="toggleActionMenu(event, '${dropdownMenuId}')">⋮</button>
-                                    <div id="${dropdownMenuId}" class="action-menu-dropdown">
-                                        <div class="action-menu-item" onclick="triggerDeckCardPrintingSwitchModal('${cardId}', 'main')">🖼️ Switch Printing</div>
-                                        <div class="action-menu-item" onclick="removeCardFromDeckCompletely('${cardId}', 'main')">❌ Remove Commander</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td><span class="set-badge">${item.meta.set}</span></td>
-                            <td style="text-align:center; font-weight:bold; color:#ff9e3b;">1</td>
-                            <td style="text-align: center; ${binderCellColor} ${binderCellCursor}" class="${binderCellClass}" ${binderClickHandler}>${binderQty} copies</td>
-                        `;
-                    } else {
-                        const areaTag = isSideboardContext ? 'side' : 'main';
-                        const opposingZoneLabel = isSideboardContext ? 'Mainboard' : 'Sideboard';
-                        const countStyle = (item.count > binderQty && binderQty > 0) ? 'color: #ff4a4a; font-weight: bold;' : 'font-weight: bold;';
-                        
-                        const binderCellClass = 'interactive-pool-total';
-                        const binderCellCursor = 'cursor: pointer;';
-                        const binderCellColor = binderQty > 0 ? 'color: #ff9e3b;' : 'color: #aaa;';
-                        const binderClickHandler = `onclick="openBinderLocationsModal('${cardId}')"`;
-                        
-                        row.innerHTML = `
-                            <td>
-                                <div class="name-cell-wrapper">
-                                    <div class="card-name-group">
-                                        <span class="clickable-card-name" data-card-id="${cardId}" onclick="openCardModalFromContainer('${cardId}', this)">${item.meta.name}</span>
-                                        ${badgesHtml}
-                                    </div>
-                                    <button class="action-dots-btn" onclick="toggleActionMenu(event, '${dropdownMenuId}')">⋮</button>
-                                    
-                                    <div id="${dropdownMenuId}" class="action-menu-dropdown">
-                                        <div class="action-menu-item" onclick="changeCardZoneDestination('${cardId}', '${areaTag}')">🔄 Move to ${opposingZoneLabel}</div>
-                                        <div class="action-menu-item" onclick="promoteCardToDeckCommander('${cardId}', '${areaTag}')">👑 Set as Commander</div>
-                                        <div class="action-menu-item" onclick="triggerDeckCardPrintingSwitchModal('${cardId}', '${areaTag}')">🖼️ Switch Printing</div>
-                                        <div class="action-menu-item" onclick="removeCardFromDeckCompletely('${cardId}', '${areaTag}')">❌ Delete From List</div>
-                                    </div>
-                                </div>
-                            </td>
-                            <td><span class="set-badge">${item.meta.set}</span></td>
-                            <td style="text-align: center;">
-                                <button class="inline-qty-btn" onclick="adjustCardInDeck('${cardId}', -1, '${areaTag}')">-</button>
-                                <span style="${countStyle} min-width:20px; display:inline-block;">${item.count}</span>
-                                <button class="inline-qty-btn" onclick="adjustCardInDeck('${cardId}', 1, '${areaTag}')">+</button>
-                            </td>
-                            <td style="text-align: center; ${binderCellColor} ${binderCellCursor}" class="${binderCellClass}" ${binderClickHandler}>${binderQty} copies</td>
-                        `;
-                    }
-                    tbody.appendChild(row);
-                });
-                blockWrapper.appendChild(table);
-                container.appendChild(blockWrapper);
             }
         }
 
@@ -4416,8 +3235,6 @@
                 const collectionBody = elem.closest('#collectionTableBody');
                 if (collectionBody) {
                     scope = collectionBody;
-                } else if (elem.closest('.deckbuilder-layout')) {
-                    scope = elem.closest('.deckbuilder-layout');
                 } else if (elem.closest('.collection-category-block')) {
                     scope = elem.closest('.collection-category-block');
                 } else if (elem.closest('.mana-histogram-list')) {
@@ -4765,20 +3582,6 @@
             localStorage.setItem('mtgCollectionData_v2', JSON.stringify(collectionData));
         }
 
-        function ensureDeckOwnershipDataStructure() {
-            const curId = getCurrentUserId();
-            let modified = false;
-            Object.keys(decklistsData).forEach(deckId => {
-                if (!decklistsData[deckId].ownerId) {
-                    decklistsData[deckId].ownerId = curId;
-                    modified = true;
-                }
-            });
-            if (modified) {
-                localStorage.setItem('mtgDecklistsData_v2', JSON.stringify(decklistsData));
-            }
-        }
-
         function showAuthFlow(flow) {
             const signInForm = document.getElementById('signInForm');
             const signUpForm = document.getElementById('signUpForm');
@@ -4973,30 +3776,7 @@
                     updateImagePreview(printCard);
                     cacheCardMetadata(printCard);
                     
-                    if (activePrintingContextSource.type === 'deck') {
-                        const oldId = activePrintingContextSource.targetId;
-                        const zone = activePrintingContextSource.zone;
-                        const deck = decklistsData[currentActiveDeckId];
-                        
-                        if (deck) {
-                            if (deck.commanderId === oldId) {
-                                deck.commanderId = printCard.id;
-                                if (printCard.image_uris && printCard.image_uris.art_crop) {
-                                    deck.commanderBannerArt = printCard.image_uris.art_crop;
-                                }
-                            } else if (zone === 'side' && deck.sideboard[oldId] !== undefined) {
-                                const qty = deck.sideboard[oldId];
-                                delete deck.sideboard[oldId];
-                                deck.sideboard[printCard.id] = (deck.sideboard[printCard.id] || 0) + qty;
-                            } else if (zone === 'main' && deck.cards[oldId] !== undefined) {
-                                const qty = deck.cards[oldId];
-                                delete deck.cards[oldId];
-                                deck.cards[printCard.id] = (deck.cards[printCard.id] || 0) + qty;
-                            }
-                            localStorage.setItem('mtgDecklistsData_v2', JSON.stringify(decklistsData));
-                            selectDeck(currentActiveDeckId); 
-                        }
-                    } else if (activePrintingContextSource.type === 'binder') {
+                    if (activePrintingContextSource.type === 'binder') {
                         const oldId = activePrintingContextSource.targetId;
                         const userId = getCurrentUserId();
                         const qty = (collectionData[oldId] && collectionData[oldId][userId]) ? collectionData[oldId][userId] : 0;
@@ -5141,247 +3921,6 @@
             });
         }
 
-        let deckStatsSelection = { color: null, bucket: null, section: null };
-
-        function getCmcFromMeta(meta) {
-            if (typeof meta.cmc === 'number') return Math.max(0, meta.cmc);
-            if (meta.mana_cost) {
-                const parts = meta.mana_cost.match(/\{([^}]+)\}/g) || [];
-                return parts.reduce((sum, part) => {
-                    const inner = part.replace(/[{}]/g, '');
-                    const numeric = parseInt(inner);
-                    return sum + (isNaN(numeric) ? 1 : numeric);
-                }, 0);
-            }
-            if (meta.card_faces && Array.isArray(meta.card_faces)) {
-                return meta.card_faces.reduce((sum, face) => {
-                    const faceCost = face.mana_cost || '';
-                    const parts = faceCost.match(/\{([^}]+)\}/g) || [];
-                    return sum + parts.reduce((sub, part) => {
-                        const inner = part.replace(/[{}]/g, '');
-                        const numeric = parseInt(inner);
-                        return sub + (isNaN(numeric) ? 1 : numeric);
-                    }, 0);
-                }, 0);
-            }
-            return 0;
-        }
-
-        /* --- DECK STATS & HISTOGRAMS --- */
-        function computeAndRenderDeckStats(deck) {
-            const main = deck.cards || {};
-            const colors = ['W','U','B','R','G','C'];
-            const colorNames = {W:'White',U:'Blue',B:'Black',R:'Red',G:'Green',C:'Colorless'};
-            const colorSymbols = {W:'{W}',U:'{U}',B:'{B}',R:'{R}',G:'{G}',C:'{C}'};
-            const colorMap = {W:'#fff8d6',U:'#3b82f6',B:'#111827',R:'#ef4444',G:'#22c55e',C:'#9ca3af'};
-
-            const avgTotals = {W:0,U:0,B:0,R:0,G:0,C:0};
-            const avgCounts = {W:0,U:0,B:0,R:0,G:0,C:0};
-            const bins = Array.from({length:11}, ()=> ({perm: 0, nonperm: 0}));
-            const bucketCards = Array.from({length:11}, ()=> ({perm: [], nonperm: []}));
-            const colorCards = {W:{perm:[],nonperm:[]},U:{perm:[],nonperm:[]},B:{perm:[],nonperm:[]},R:{perm:[],nonperm:[]},G:{perm:[],nonperm:[]},C:{perm:[],nonperm:[]}};
-
-            Object.keys(main).forEach(cardId => {
-                const qty = main[cardId] || 0;
-                if (!qty) return;
-                const meta = cardMetadataCache[cardId] || {cmc:0,color_identity:[],colors:[],type:'N/A',name:'Unknown',mana_cost:'',card_faces:[]};
-                const cmc = Math.max(0, Math.round(getCmcFromMeta(meta)));
-                const isPermanent = !(/instant|sorcery/i).test(meta.type || '');
-                const isLand = /land/i.test(meta.type || '');
-                if (isLand) return;
-                const colorsForCard = (meta.color_identity && meta.color_identity.length) ? meta.color_identity : (meta.colors && meta.colors.length ? meta.colors : ['C']);
-                const bucketIndex = Math.min(10, Math.floor(cmc));
-
-                const entry = { id: cardId, name: meta.name, qty, cmc, type: meta.type, colors: colorsForCard };
-                if (isPermanent) bucketCards[bucketIndex].perm.push(entry);
-                else bucketCards[bucketIndex].nonperm.push(entry);
-
-                colorsForCard.forEach(c => {
-                    const key = colors.includes(c) ? c : 'C';
-                    avgTotals[key] += cmc * qty;
-                    avgCounts[key] += qty;
-                    if (isPermanent) colorCards[key].perm.push(entry);
-                    else colorCards[key].nonperm.push(entry);
-                });
-                if (isPermanent) bins[bucketIndex].perm += qty;
-                else bins[bucketIndex].nonperm += qty;
-            });
-
-            const avgContainer = document.getElementById('avgCmcPerColor');
-            avgContainer.innerHTML = '';
-            colors.forEach(c => {
-                const avg = avgCounts[c] ? (avgTotals[c] / avgCounts[c]).toFixed(2) : '-';
-                const chip = document.createElement('div');
-                chip.style.padding = '6px 10px';
-                chip.style.borderRadius = '8px';
-                chip.style.background = '#141414';
-                chip.style.color = '#ddd';
-                chip.style.fontSize = '13px';
-                chip.style.display = 'inline-flex';
-                chip.style.alignItems = 'center';
-                chip.style.gap = '6px';
-                const manaIcon = document.createElement('span');
-                manaIcon.style.display = 'inline-flex';
-                manaIcon.style.alignItems = 'center';
-                manaIcon.style.justifyContent = 'center';
-                manaIcon.style.width = '18px';
-                manaIcon.style.height = '18px';
-                manaIcon.style.borderRadius = '50%';
-                manaIcon.style.background = colorMap[c] || '#888';
-                manaIcon.style.color = c === 'W' ? '#111' : '#fff';
-                manaIcon.style.fontWeight = '700';
-                manaIcon.style.fontSize = '12px';
-                manaIcon.textContent = c === 'C' ? '◇' : c;
-                chip.appendChild(manaIcon);
-                const avgText = document.createElement('span');
-                avgText.textContent = avg;
-                chip.appendChild(avgText);
-                avgContainer.appendChild(chip);
-            });
-
-            renderManaHistogram(bins, bucketCards, colorCards, colorMap, colorSymbols, colorNames);
-        }
-
-        function renderManaHistogram(bins, bucketCards, colorCards, colorMap, colorSymbols, colorNames) {
-            const svg = document.getElementById('manaHistogram');
-            const legend = document.getElementById('manaHistogramLegend');
-            const listContainer = document.getElementById('manaHistogramList');
-            svg.innerHTML = '';
-            legend.innerHTML = '';
-            listContainer.innerHTML = '';
-
-            const width = 600, height = 190, padding = 30;
-            const binsCount = bins.length;
-            const barBaseWidth = (width - padding * 2) / binsCount;
-            const barWidth = barBaseWidth * 0.7;
-            const gap = barBaseWidth - barWidth;
-            const permColor = '#f59e0b';
-            const nonpermColor = '#9ca3af';
-
-            let maxTotal = 0;
-            for (let i = 0; i < binsCount; i++) {
-                const tot = (bins[i].perm || 0) + (bins[i].nonperm || 0);
-                maxTotal = Math.max(maxTotal, tot);
-            }
-            const scale = maxTotal > 0 ? ((height - 60) / maxTotal) : 0;
-
-            for (let i = 0; i < binsCount; i++) {
-                const x = padding + i * barBaseWidth + gap / 2;
-                const bucket = bins[i];
-                const group = document.createElementNS('http://www.w3.org/2000/svg','g');
-
-                const permHeight = (bucket.perm || 0) * scale;
-                if (permHeight > 0) {
-                    const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
-                    rect.setAttribute('x', x);
-                    rect.setAttribute('y', height - 20 - permHeight);
-                    rect.setAttribute('width', barWidth);
-                    rect.setAttribute('height', permHeight);
-                    rect.setAttribute('fill', permColor);
-                    rect.setAttribute('stroke', deckStatsSelection.bucket === i && deckStatsSelection.section === 'perm' ? '#fff' : '#111');
-                    rect.setAttribute('stroke-width', deckStatsSelection.bucket === i && deckStatsSelection.section === 'perm' ? '1.5' : '0.5');
-                    rect.style.cursor = 'pointer';
-                    rect.onclick = () => {
-                        deckStatsSelection.bucket = i;
-                        deckStatsSelection.section = deckStatsSelection.section === 'perm' && deckStatsSelection.bucket === i ? null : 'perm';
-                        renderManaHistogram(bins, bucketCards, colorCards, colorMap, colorSymbols, colorNames);
-                    };
-                    group.appendChild(rect);
-                }
-
-                const nonpermHeight = (bucket.nonperm || 0) * scale;
-                if (nonpermHeight > 0) {
-                    const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
-                    rect.setAttribute('x', x);
-                    rect.setAttribute('y', height - 20 - permHeight - nonpermHeight);
-                    rect.setAttribute('width', barWidth);
-                    rect.setAttribute('height', nonpermHeight);
-                    rect.setAttribute('fill', nonpermColor);
-                    rect.setAttribute('opacity', '0.9');
-                    rect.setAttribute('stroke', deckStatsSelection.bucket === i && deckStatsSelection.section === 'nonperm' ? '#fff' : '#111');
-                    rect.setAttribute('stroke-width', deckStatsSelection.bucket === i && deckStatsSelection.section === 'nonperm' ? '1.5' : '0.5');
-                    rect.style.cursor = 'pointer';
-                    rect.onclick = () => {
-                        deckStatsSelection.bucket = i;
-                        deckStatsSelection.section = deckStatsSelection.section === 'nonperm' && deckStatsSelection.bucket === i ? null : 'nonperm';
-                        renderManaHistogram(bins, bucketCards, colorCards, colorMap, colorSymbols, colorNames);
-                    };
-                    group.appendChild(rect);
-                }
-
-                const label = document.createElementNS('http://www.w3.org/2000/svg','text');
-                label.setAttribute('x', x + barWidth / 2);
-                label.setAttribute('y', height - 2);
-                label.setAttribute('fill', '#aaa');
-                label.setAttribute('font-size', '10');
-                label.setAttribute('text-anchor', 'middle');
-                label.textContent = i === 10 ? '10+' : String(i);
-                group.appendChild(label);
-                svg.appendChild(group);
-            }
-
-            const legendItems = [
-                { label: 'Permanents', color: permColor, section: 'perm' },
-                { label: 'Non-Permanents', color: nonpermColor, section: 'nonperm' }
-            ];
-
-            legendItems.forEach(item => {
-                const chip = document.createElement('div');
-                chip.style.display = 'inline-flex';
-                chip.style.alignItems = 'center';
-                chip.style.cursor = 'pointer';
-                chip.style.padding = '6px 10px';
-                chip.style.borderRadius = '8px';
-                chip.style.background = deckStatsSelection.section === item.section ? '#1f2937' : '#111827';
-                chip.style.border = deckStatsSelection.section === item.section ? '1px solid #fff' : '1px solid #111827';
-                chip.style.color = '#ddd';
-                chip.style.fontSize = '13px';
-                chip.style.gap = '8px';
-                const colorDot = document.createElement('span');
-                colorDot.style.width = '14px';
-                colorDot.style.height = '14px';
-                colorDot.style.borderRadius = '50%';
-                colorDot.style.background = item.color;
-                chip.appendChild(colorDot);
-                const label = document.createElement('span');
-                label.textContent = item.label;
-                chip.appendChild(label);
-                chip.onclick = () => {
-                    if (deckStatsSelection.section === item.section) {
-                        deckStatsSelection.section = null;
-                    } else {
-                        deckStatsSelection.section = item.section;
-                        deckStatsSelection.bucket = null;
-                    }
-                    renderManaHistogram(bins, bucketCards, colorCards, colorMap, colorSymbols, colorNames);
-                };
-                legend.appendChild(chip);
-            });
-
-            renderHistogramList(bucketCards, colorCards);
-        }
-
-        function renderHistogramList(bucketCards, colorCards) {
-            const container = document.getElementById('manaHistogramList');
-            container.innerHTML = '';
-
-            const selectedBucket = deckStatsSelection.bucket;
-            const selectedSection = deckStatsSelection.section;
-
-            const title = document.createElement('div');
-            title.style.marginBottom = '10px';
-            title.style.color = '#bbb';
-            if (selectedBucket === null && !selectedSection) {
-                title.textContent = 'Click a CMC bar segment to inspect matching deck cards.';
-                container.appendChild(title);
-                return;
-            }
-
-            let perm = [];
-            let nonperm = [];
-            if (selectedBucket !== null) {
-                perm = bucketCards[selectedBucket].perm.slice();
-                nonperm = bucketCards[selectedBucket].nonperm.slice();
             } else if (selectedSection === 'perm' || selectedSection === 'nonperm') {
                 bucketCards.forEach(bucket => {
                     if (selectedSection === 'perm') perm = perm.concat(bucket.perm);
