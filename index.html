@@ -2061,6 +2061,97 @@
             };
         }
 
+        function applyInventoryDeltaForUserCard(userId, cardId, deltaQuantity) {
+            if (!userId || !cardId || !Number.isFinite(deltaQuantity)) return;
+            if (!collectionData[cardId]) collectionData[cardId] = {};
+            const currentQty = Number(collectionData[cardId][userId] || 0);
+            const nextQty = currentQty + Number(deltaQuantity);
+            if (nextQty <= 0) {
+                delete collectionData[cardId][userId];
+                if (Object.keys(collectionData[cardId]).length === 0) {
+                    delete collectionData[cardId];
+                }
+            } else {
+                collectionData[cardId][userId] = nextQty;
+            }
+        }
+
+        function applyAcceptedTradeInventoryTransfer(request) {
+            if (!request || request.inventoryTransferApplied) return;
+            const buyerId = request.requesterId;
+            const sellerId = request.ownerId;
+            const requestedCardId = request.cardId;
+
+            if (requestedCardId) {
+                applyInventoryDeltaForUserCard(sellerId, requestedCardId, -1);
+                applyInventoryDeltaForUserCard(buyerId, requestedCardId, 1);
+            }
+
+            const offeredCards = Array.isArray(request.offeredCards) && request.offeredCards.length > 0
+                ? request.offeredCards
+                : (Array.isArray(request.offeredItems) ? request.offeredItems.filter(item => item && item.kind === 'card') : []);
+
+            offeredCards.forEach(item => {
+                const cardId = item.scryfallId || item.cardId || null;
+                const quantity = Math.max(1, Number(item.quantity || 1));
+                if (!cardId) return;
+                applyInventoryDeltaForUserCard(buyerId, cardId, -quantity);
+                applyInventoryDeltaForUserCard(sellerId, cardId, quantity);
+            });
+
+            request.inventoryTransferApplied = true;
+            localStorage.setItem('mtgCollectionData_v2', JSON.stringify(collectionData));
+        }
+
+        async function syncUserBinderDataToSupabase(userId) {
+            if (!userId || !isSupabaseConfigured() || !supabaseClient || !supabaseClient.from) return;
+            const binder = {};
+            Object.keys(collectionData).forEach(cardId => {
+                const qty = Number(collectionData[cardId]?.[userId] || 0);
+                if (qty > 0) binder[cardId] = qty;
+            });
+            try {
+                const { error } = await supabaseClient
+                    .from('user_data')
+                    .upsert({ user_id: userId, binder, friends_list: friendsList }, { onConflict: 'user_id' });
+                if (error) {
+                    console.warn('Remote binder sync failed for user', userId, error);
+                }
+            } catch (e) {
+                console.warn('Remote binder sync error for user', userId, e);
+            }
+        }
+
+        async function syncTradeListingStatusToSupabase(listingId, status) {
+            if (!listingId || !isSupabaseConfigured() || !supabaseClient || !supabaseClient.from) return;
+            try {
+                const { error } = await supabaseClient
+                    .from('marketplace_listings')
+                    .update({ status })
+                    .eq('id', listingId);
+                if (error) {
+                    console.warn('Marketplace delist sync failed', error);
+                }
+            } catch (e) {
+                console.warn('Marketplace delist sync error', e);
+            }
+        }
+
+        async function syncAcceptedTradeInventoryToSupabase(request) {
+            if (!request) return;
+            const buyerId = request.requesterId;
+            const sellerId = request.ownerId;
+            await syncUserBinderDataToSupabase(buyerId);
+            await syncUserBinderDataToSupabase(sellerId);
+
+            const listing = tradeListings.find(item => item.ownerId === sellerId && item.cardId === request.cardId);
+            if (listing) {
+                listing.status = 'completed';
+                await syncTradeListingStatusToSupabase(listing.id, 'completed');
+            }
+            localStorage.setItem('mtgTradeListings_v2', JSON.stringify(tradeListings));
+        }
+
         async function syncCurrentUserDataToRemote() {
             if (!isSupabaseConfigured() || !currentUser || currentUser.guest) {
                 console.log('Skipping remote sync because Supabase is not configured or user is guest', { isSupabaseConfigured: isSupabaseConfigured(), currentUser });
@@ -3459,6 +3550,8 @@
                 request.lastUpdatedBy = currentUser.id;
                 request.history.push({ when: request.updatedAt, actor: currentUser.username || 'Owner', note: `${getOwnerDisplayName(request.ownerId)} accepted the request.` });
                 request.requesterSeen = false;
+                applyAcceptedTradeInventoryTransfer(request);
+                void syncAcceptedTradeInventoryToSupabase(request);
                 triggerRatingForAcceptedTrade(request);
             } else if (action === 'decline') {
                 request.status = 'declined';
@@ -3494,6 +3587,8 @@
             });
             request.requesterSeen = false;
             request.ownerSeen = false;
+            applyAcceptedTradeInventoryTransfer(request);
+            void syncAcceptedTradeInventoryToSupabase(request);
             triggerRatingForAcceptedTrade(request);
             localStorage.setItem('mtgTradeRequests_v2', JSON.stringify(tradeRequests));
             renderTradeNotifications();
@@ -3960,25 +4055,24 @@
                 return;
             }
 
-            if (!collectionData[cardId]) collectionData[cardId] = {};
-            if (request.ownerId !== currentUser.id) {
-                const ownerQty = collectionData[cardId][request.ownerId] || 0;
-                if (ownerQty < 1) {
-                    alert('The owner no longer has this card available.');
-                    return;
-                }
-                collectionData[cardId][request.ownerId] -= 1;
+            if (!request.inventoryTransferApplied) {
+                applyAcceptedTradeInventoryTransfer(request);
             }
-            const curId = getCurrentUserId();
-            collectionData[cardId][curId] = (collectionData[cardId][curId] || 0) + 1;
 
             request.status = 'completed';
             request.updatedAt = new Date().toISOString();
             request.completedAt = request.updatedAt;
             request.history.push({ when: request.updatedAt, actor: currentUser.username || 'Requester', note: `Trade completed and card moved to ${getOwnerDisplayName(request.requesterId)} binder.` });
 
+            const listing = tradeListings.find(item => item.ownerId === request.ownerId && item.cardId === request.cardId && (item.status || 'active') !== 'completed');
+            if (listing) {
+                listing.status = 'completed';
+                void syncTradeListingStatusToSupabase(listing.id, 'completed');
+            }
+
             localStorage.setItem('mtgCollectionData_v2', JSON.stringify(collectionData));
             localStorage.setItem('mtgTradeRequests_v2', JSON.stringify(tradeRequests));
+            localStorage.setItem('mtgTradeListings_v2', JSON.stringify(tradeListings));
             renderCollectionTable();
             renderTradeNotifications();
             alert('Trade completed and card added to your binder.');
@@ -4055,11 +4149,12 @@
         }
 
         function renderBrowseMarketplacePanel() {
-            if (!tradeListings || tradeListings.length === 0) {
+            const activeListings = (tradeListings || []).filter(listing => (listing.status || 'active') === 'active');
+            if (!activeListings || activeListings.length === 0) {
                 return '<div class="offer-card" style="color:#999;">There are no active marketplace listings right now.</div>';
             }
 
-            const visibleListings = tradeListings.filter(listing => listing.ownerId !== currentUser.id);
+            const visibleListings = activeListings.filter(listing => listing.ownerId !== currentUser.id);
             if (visibleListings.length === 0) {
                 return '<div class="offer-card" style="color:#999;">No other users are currently selling or trading cards in the marketplace.</div>';
             }
@@ -4473,11 +4568,12 @@
                 condition: condition,
                 price: trimmedPrice,
                 notes: notes,
+                status: 'active',
                 createdAt: new Date().toISOString()
             };
 
             if (existingIndex >= 0) {
-                tradeListings[existingIndex] = listing;
+                tradeListings[existingIndex] = { ...tradeListings[existingIndex], ...listing, status: tradeListings[existingIndex].status || 'active' };
             } else {
                 tradeListings.push(listing);
             }
@@ -4489,7 +4585,7 @@
         }
 
         function removeTradeListing(listingId) {
-            tradeListings = tradeListings.filter(item => item.id !== listingId);
+            tradeListings = tradeListings.map(item => item.id === listingId ? { ...item, status: 'delisted' } : item);
             localStorage.setItem('mtgTradeListings_v2', JSON.stringify(tradeListings));
             renderTradeNotifications();
         }
