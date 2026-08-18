@@ -3730,16 +3730,44 @@
             return compact ? `★ ${summary.average.toFixed(1)} (${summary.count})` : `★ ${summary.average.toFixed(1)} (${summary.count} reviews)`;
         }
 
+        function findTradeRequestById(tradeId) {
+            if (!tradeId || !tradeRequests) return null;
+            for (const cardId of Object.keys(tradeRequests)) {
+                const match = (tradeRequests[cardId] || []).find(r => r.requestId === tradeId);
+                if (match) return match;
+            }
+            return null;
+        }
+
+        function getTradeRoleForUser(request, userId) {
+            if (!request || !userId) return null;
+            if (request.requesterId === userId) return 'buyer';
+            if (request.ownerId === userId) return 'seller';
+            return null;
+        }
+
+        function getTradeCounterpartyId(request, userId) {
+            if (!request || !userId) return null;
+            return request.requesterId === userId ? request.ownerId : request.ownerId === userId ? request.requesterId : null;
+        }
+
+        function getUserTradeRatingRecord(tradeId, userId) {
+            if (!tradeId || !userId) return null;
+            return getUserRatingsStore().find(r => String(r.tradeId) === String(tradeId) && String(r.raterUserId) === String(userId)) || null;
+        }
+
         function getTradeReviewTargetUserId(request, viewerUserId) {
             if (!request) return null;
             if (!viewerUserId) return request.ownerId;
-            return request.requesterId === viewerUserId ? request.ownerId : request.requesterId;
+            return getTradeCounterpartyId(request, viewerUserId);
         }
 
-        function getTradeContextSummary(request) {
+        function getTradeContextSummary(request, viewerUserId) {
+            if (!request) return 'Verified trade';
             const cardName = cardMetadataCache[request.cardId]?.name || 'Card';
-            const direction = request.requesterId === currentUser.id ? 'Received' : 'Sent';
-            return `Verified trade (${direction}) 🃏 ${cardName}`;
+            const role = getTradeRoleForUser(request, viewerUserId) || 'buyer';
+            const roleLabel = role === 'seller' ? 'As Seller' : 'As Buyer';
+            return `Verified Trade (${roleLabel}) 🃏 ${cardName}`;
         }
 
         function updateCurrentUserProfileDisplay() {
@@ -3754,24 +3782,28 @@
             if (!request || !currentUser) return;
             const ratedUserId = getTradeReviewTargetUserId(request, currentUser.id);
             if (!ratedUserId) return;
-            const existing = getUserRatingsStore().find(r => r.tradeId === request.requestId && r.raterUserId === currentUser.id && r.ratedUserId === ratedUserId);
+            const existing = getUserTradeRatingRecord(request.requestId, currentUser.id);
             if (existing) return;
-            openRatingReviewModal(request, ratedUserId);
+            const raterRole = getTradeRoleForUser(request, currentUser.id);
+            openRatingReviewModal(request, ratedUserId, raterRole || 'buyer');
         }
 
         function maybeTriggerRatingModalForTrade(request) {
             triggerRatingForAcceptedTrade(request);
         }
 
-        function openRatingReviewModal(request, ratedUserId) {
+        function openRatingReviewModal(request, ratedUserId, raterRole) {
             const modal = document.getElementById('ratingReviewModal');
             if (!modal || !request || !ratedUserId) return;
+            const effectiveRaterRole = raterRole || getTradeRoleForUser(request, currentUser.id) || 'buyer';
+            const roleTitle = effectiveRaterRole === 'seller' ? 'Buyer' : 'Seller';
             modal.dataset.tradeId = request.requestId;
             modal.dataset.ratedUserId = ratedUserId;
+            modal.dataset.raterRole = effectiveRaterRole;
             modal.dataset.selectedScore = '0';
             const ratedName = getDisplayUserNameById(ratedUserId) || 'this trader';
-            document.getElementById('ratingReviewModalTitle').textContent = `Rate Your Trade with ${ratedName}`;
-            document.getElementById('ratingReviewModalContext').textContent = `Verified trade: ${getTradeContextSummary(request)}`;
+            document.getElementById('ratingReviewModalTitle').textContent = `Rate ${roleTitle} ${ratedName}`;
+            document.getElementById('ratingReviewModalContext').textContent = `Verified trade: ${getTradeContextSummary(request, currentUser.id)}`;
             document.getElementById('ratingReviewText').value = '';
             setSelectedStar(0);
             modal.style.display = 'flex';
@@ -3839,11 +3871,13 @@
                 return;
             }
             feed.innerHTML = filtered.map(review => {
+                const request = findTradeRequestById(review.tradeId);
                 const reviewUser = getDisplayUserNameById(tab === 'by' ? review.ratedUserId : review.raterUserId) || 'Trader';
-                const cardName = review.tradeContext || 'Verified trade';
+                const roleLabel = review.role === 'seller' ? 'Seller' : 'Buyer';
+                const cardName = (request && cardMetadataCache[request.cardId]?.name) || review.tradeContext || 'Verified trade';
                 const stars = '★'.repeat(Number(review.score || 0)) + '☆'.repeat(5 - Number(review.score || 0));
                 const date = review.createdAt ? new Date(review.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Recent';
-                const badge = review.tradeContext ? `<div style="margin-top:8px; color:#ff9e3b; font-size:12px;">Verified trade 🃏 ${escapeHtml(cardName)}</div>` : '';
+                const badge = `<div style="margin-top:8px; color:#ff9e3b; font-size:12px;">Verified Trade (As ${roleLabel}) 🃏 ${escapeHtml(cardName)}</div>`;
                 const comment = (review.reviewText || '').trim();
                 return `
                     <div style="padding: 14px; border: 1px solid #333; border-radius: 10px; background: #1b1b1b; margin-bottom: 12px;">
@@ -3883,11 +3917,14 @@
                 return;
             }
             const ratings = getUserRatingsStore();
-            const duplicate = ratings.find(r => r.tradeId === tradeId && r.raterUserId === currentUser.id && r.ratedUserId === ratedUserId);
+            const duplicate = ratings.find(r => String(r.tradeId) === String(tradeId) && String(r.raterUserId) === String(currentUser.id));
             if (duplicate) {
                 closeRatingReviewModal();
                 return;
             }
+            const request = findTradeRequestById(tradeId) || { cardId: null, requesterId: currentUser.id, ownerId: ratedUserId };
+            const raterRole = modal.dataset.raterRole || getTradeRoleForUser(request, currentUser.id) || 'buyer';
+            const cardName = cardMetadataCache[request.cardId]?.name || 'Card';
             const record = {
                 raterUserId: currentUser.id,
                 ratedUserId: ratedUserId,
@@ -3895,7 +3932,8 @@
                 score: score,
                 reviewText: reviewText,
                 createdAt: new Date().toISOString(),
-                tradeContext: getTradeContextSummary((tradeRequests[Object.keys(tradeRequests).find(cardId => (tradeRequests[cardId] || []).some(r => r.requestId === tradeId))] || []).find(r => r.requestId === tradeId) || { cardId: null, requesterId: currentUser.id, ownerId: ratedUserId })
+                role: raterRole,
+                tradeContext: `${cardName} — Rated as ${raterRole === 'buyer' ? 'Buyer' : 'Seller'}`
             };
             ratings.push(record);
             saveUserRatingsStore(ratings);
@@ -4187,6 +4225,8 @@
             const statusColor = statusColors[normalizedStatus] || '#ccc';
             let actionHtml = '';
             const isCurrentUsersTurn = isCurrentUserTurnToAct(request);
+            const currentUserRole = currentUser ? getTradeRoleForUser(request, currentUser.id) : null;
+            const currentUserTradeRating = currentUser && currentUser.id ? getUserTradeRatingRecord(request.requestId, currentUser.id) : null;
 
             if (normalizedStatus === 'accepted' && request.requesterId === currentUser.id) {
                 actionHtml = `<button class="styled-btn" onclick="completeTrade('${request.cardId}', '${request.requestId}')">Complete Trade</button>`;
@@ -4205,6 +4245,15 @@
                         <button class="styled-btn" onclick="openCounterOfferModal('${request.cardId}', '${request.requestId}')">Counter Again</button>
                     `;
                 }
+            }
+            if ((normalizedStatus === 'accepted' || normalizedStatus === 'completed') && currentUser && currentUserRole && !currentUserTradeRating) {
+                const targetUserId = getTradeCounterpartyId(request, currentUser.id);
+                const targetRoleLabel = currentUserRole === 'seller' ? 'Buyer' : 'Seller';
+                if (targetUserId) {
+                    actionHtml = `<button class="styled-btn" onclick="openRatingReviewModal(${JSON.stringify(request)}, '${targetUserId}', '${currentUserRole}')">★ Rate ${targetRoleLabel}</button>`;
+                }
+            } else if ((normalizedStatus === 'accepted' || normalizedStatus === 'completed') && currentUserTradeRating) {
+                actionHtml = '<span style="display:inline-block; padding:6px 10px; border-radius:999px; background:rgba(126,237,127,0.12); color:#9ae69a; border:1px solid rgba(126,237,127,0.35); font-size:12px; font-weight:700;">✓ Rated</span>';
             }
             const originalOfferLine = request.originalOfferSummary || request.offerDetails ? `<div style="margin-top:8px;color:#ffd166;"><strong>Original Offer:</strong> ${escapeHtml(request.originalOfferSummary || request.offerDetails)}</div>` : '';
             const counterLine = request.latestCounterSummary || request.counterMessage ? `<div style="margin-top:8px;color:#ccc;"><strong>Latest Counter:</strong> ${escapeHtml(request.latestCounterSummary || request.counterMessage)}</div>` : '';
