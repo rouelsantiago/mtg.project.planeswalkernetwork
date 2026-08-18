@@ -1850,6 +1850,12 @@
         let currentTradeHubTab = 'my-listings';
         let currentTradeHistorySort = 'newest';
         let currentTradeHistorySearch = '';
+        let currentTradeOffersSearch = '';
+        let currentTradeOffersSort = 'newest';
+        let currentMarketplaceSort = 'newest';
+        let currentMarketplaceSearch = '';
+        let currentMarketplaceTypeFilters = [];
+        let expandedTradeCards = {};
         
         // Keeps track of the collapsed status of individual category headers
         let collapsedCategoriesTracker = {};
@@ -3647,6 +3653,7 @@
 
             if (action === 'accept') {
                 request.status = 'accepted';
+                request.completionState = { buyer: false, seller: false };
                 request.updatedAt = new Date().toISOString();
                 request.activeNegotiationState = 'accepted';
                 request.turnOwnerId = null;
@@ -3678,6 +3685,7 @@
             const request = (tradeRequests[cardId] || []).find(r => r.requestId === requestId);
             if (!request) return;
             request.status = 'accepted';
+            request.completionState = { buyer: false, seller: false };
             request.updatedAt = new Date().toISOString();
             request.activeNegotiationState = 'accepted';
             request.turnOwnerId = null;
@@ -4243,6 +4251,13 @@
             renderTradeNotifications();
         }
 
+        function setActiveTradeOffersSection(section) {
+            if (section !== 'made' && section !== 'received') return;
+            currentTradeOffersSection = section;
+            currentTradeOffersTab = currentTradeOffersTab || 'open';
+            renderTradeNotifications();
+        }
+
         async function refreshUserRatingsFromSupabase() {
             if (!isSupabaseConfigured() || !supabaseClient || !supabaseClient.from) return;
             try {
@@ -4325,21 +4340,100 @@
             }).join('');
         }
 
+        function toggleMarketplaceTypeFilter(typeName) {
+            const normalized = String(typeName || '').trim();
+            if (!normalized) return;
+            const index = currentMarketplaceTypeFilters.indexOf(normalized);
+            if (index >= 0) {
+                currentMarketplaceTypeFilters.splice(index, 1);
+            } else {
+                currentMarketplaceTypeFilters.push(normalized);
+            }
+            renderTradeNotifications();
+        }
+
+        function getMarketplacePriceValue(listing) {
+            if (!listing || !listing.price) return Number.MAX_SAFE_INTEGER;
+            const match = String(listing.price).match(/\$?\s*([0-9]+(?:\.[0-9]+)?)/);
+            if (!match) return Number.MAX_SAFE_INTEGER;
+            return Number(match[1]);
+        }
+
+        function matchesMarketplaceTypeFilters(listing) {
+            if (!Array.isArray(currentMarketplaceTypeFilters) || currentMarketplaceTypeFilters.length === 0) return true;
+            const typeLine = (cardMetadataCache[listing.cardId] && (cardMetadataCache[listing.cardId].type_line || cardMetadataCache[listing.cardId].typeLine)) || '';
+            return currentMarketplaceTypeFilters.some(type => typeLine.toLowerCase().includes(type.toLowerCase()));
+        }
+
         function renderBrowseMarketplacePanel() {
+            const typeOptions = ['Creature', 'Artifact', 'Instant', 'Sorcery', 'Enchantment', 'Planeswalker', 'Land'];
             const activeListings = (tradeListings || []).filter(listing => (listing.status || 'active') === 'active');
             if (!activeListings || activeListings.length === 0) {
                 return '<div class="offer-card" style="color:#999;">There are no active marketplace listings right now.</div>';
             }
 
-            const visibleListings = activeListings.filter(listing => listing.ownerId !== currentUser.id);
-            if (visibleListings.length === 0) {
-                return '<div class="offer-card" style="color:#999;">No other users are currently selling or trading cards in the marketplace.</div>';
+            let visibleListings = activeListings.filter(listing => listing.ownerId !== currentUser.id);
+            if (currentMarketplaceSearch) {
+                const query = currentMarketplaceSearch.toLowerCase();
+                visibleListings = visibleListings.filter(listing => {
+                    const cardMeta = cardMetadataCache[listing.cardId] || { name: '', set: '' };
+                    const ownerName = (listing.ownerName || '').toLowerCase();
+                    const notes = (listing.notes || '').toLowerCase();
+                    const priceText = (listing.price || '').toLowerCase();
+                    return (cardMeta.name || '').toLowerCase().includes(query) || ownerName.includes(query) || notes.includes(query) || priceText.includes(query);
+                });
+            }
+            if (currentMarketplaceTypeFilters.length > 0) {
+                visibleListings = visibleListings.filter(listing => matchesMarketplaceTypeFilters(listing));
             }
 
-            return visibleListings.slice().reverse().map(listing => {
+            visibleListings.sort((a, b) => {
+                const aTime = new Date(a.createdAt || 0).getTime();
+                const bTime = new Date(b.createdAt || 0).getTime();
+                const aPrice = getMarketplacePriceValue(a);
+                const bPrice = getMarketplacePriceValue(b);
+                const aName = (cardMetadataCache[a.cardId]?.name || '').toLowerCase();
+                const bName = (cardMetadataCache[b.cardId]?.name || '').toLowerCase();
+                if (currentMarketplaceSort === 'oldest') return aTime - bTime;
+                if (currentMarketplaceSort === 'price-low') return aPrice - bPrice || aTime - bTime;
+                if (currentMarketplaceSort === 'price-high') return bPrice - aPrice || aTime - bTime;
+                if (currentMarketplaceSort === 'az') return aName.localeCompare(bName) || aTime - bTime;
+                if (currentMarketplaceSort === 'za') return bName.localeCompare(aName) || aTime - bTime;
+                return bTime - aTime;
+            });
+
+            if (visibleListings.length === 0) {
+                return `
+                    <div class="offer-card" style="color:#999;">
+                        ${currentMarketplaceSearch ? `No marketplace listings found matching '${escapeHtml(currentMarketplaceSearch)}'.` : 'No other users are currently selling or trading cards in the marketplace.'}
+                    </div>
+                `;
+            }
+
+            const toolbar = `
+                <div class="trade-history-toolbar" style="display:flex; gap:12px; align-items:center; margin: 0 0 12px; flex-wrap:wrap;">
+                    <input type="text" value="${escapeHtml(currentMarketplaceSearch)}" placeholder="Search by card name, seller, or notes..." oninput="currentMarketplaceSearch = this.value; renderTradeNotifications();" style="flex:1; min-width:220px; background:#111; color:#fff; border:1px solid #333; border-radius:8px; padding:10px 12px;" />
+                    <select onchange="currentMarketplaceSort = this.value; renderTradeNotifications();" style="background:#111; color:#fff; border:1px solid #333; border-radius:8px; padding:10px 12px; min-width:200px;">
+                        <option value="newest" ${currentMarketplaceSort === 'newest' ? 'selected' : ''}>Newest to Oldest</option>
+                        <option value="oldest" ${currentMarketplaceSort === 'oldest' ? 'selected' : ''}>Oldest to Newest</option>
+                        <option value="price-low" ${currentMarketplaceSort === 'price-low' ? 'selected' : ''}>Price: Low to High</option>
+                        <option value="price-high" ${currentMarketplaceSort === 'price-high' ? 'selected' : ''}>Price: High to Low</option>
+                        <option value="az" ${currentMarketplaceSort === 'az' ? 'selected' : ''}>A - Z</option>
+                        <option value="za" ${currentMarketplaceSort === 'za' ? 'selected' : ''}>Z - A</option>
+                    </select>
+                </div>
+                <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+                    ${typeOptions.map(type => `
+                        <button type="button" class="filter-pill ${currentMarketplaceTypeFilters.includes(type) ? 'active' : ''}" onclick="toggleMarketplaceTypeFilter('${type}')" style="padding:8px 12px; border-radius:999px; border:1px solid #444; background:${currentMarketplaceTypeFilters.includes(type) ? '#ff9e3b' : '#1a1a1a'}; color:${currentMarketplaceTypeFilters.includes(type) ? '#111' : '#fff'}; font-size:12px; min-width: 90px;">
+                            ${type}
+                        </button>
+                    `).join('')}
+                </div>
+            `;
+
+            return toolbar + visibleListings.map(listing => {
                 const cardMeta = cardMetadataCache[listing.cardId] || { name: 'Unknown Card', set: '???' };
                 const sellerDisplay = listing.ownerName || 'Trader';
-                const userRating = getUserRatingBadge(listing.ownerId, true);
                 const imageUrl = getCardPreviewImage(cardMeta, 0) || cardMeta.art_crop || cardMeta.image_uris?.border_crop || cardMeta.image_uris?.large || cardMeta.image_uris?.normal || cardMeta.image_uris?.png || '';
                 return `
                     <div class="offer-card trade-listing-card">
@@ -4357,7 +4451,7 @@
                                 ${listing.notes ? `<div style="margin-top:8px;">${escapeHtml(listing.notes)}</div>` : ''}
                             </div>
                             <div class="offer-card-actions">
-                                <button class="styled-btn" onclick="openCardCommentModal('${listing.cardId}', '${listing.ownerId}')">Send Offer</button>
+                                <button class="styled-btn" onclick="event.stopPropagation(); openCardCommentModal('${listing.cardId}', '${listing.ownerId}')">Send Offer</button>
                             </div>
                         </div>
                     </div>
@@ -4369,6 +4463,67 @@
             const value = String(request && request.status ? request.status : 'pending').toLowerCase();
             if (value === 'open') return 'pending';
             return value;
+        }
+
+        function getTradeStatusLabel(status) {
+            const normalized = String(status || '').toLowerCase();
+            if (normalized === 'awaiting_buyer_completion') return 'Awaiting Buyer Completion';
+            if (normalized === 'awaiting_seller_completion') return 'Awaiting Seller Completion';
+            if (normalized === 'accepted') return 'Accepted';
+            if (normalized === 'completed') return 'Completed';
+            if (normalized === 'declined') return 'Declined';
+            if (normalized === 'cancelled') return 'Cancelled';
+            if (normalized === 'countered') return 'Countered';
+            return 'Pending';
+        }
+
+        function getTradeStatusColor(status) {
+            const normalized = String(status || '').toLowerCase();
+            if (normalized === 'awaiting_buyer_completion') return '#f1c232';
+            if (normalized === 'awaiting_seller_completion') return '#ff9e3b';
+            if (normalized === 'accepted') return '#7fed7f';
+            if (normalized === 'completed') return '#b5b5b5';
+            if (normalized === 'declined') return '#ff6b6b';
+            if (normalized === 'countered') return '#f1c232';
+            return '#89cff0';
+        }
+
+        function toggleTradeCardExpansion(requestId) {
+            if (!requestId) return;
+            expandedTradeCards[requestId] = !expandedTradeCards[requestId];
+            renderTradeNotifications();
+        }
+
+        function getTradeCompletionState(request) {
+            const completionState = request && request.completionState ? request.completionState : { buyer: false, seller: false };
+            return {
+                buyer: !!completionState.buyer,
+                seller: !!completionState.seller
+            };
+        }
+
+        function markTradeAsComplete(cardId, requestId) {
+            const request = (tradeRequests[cardId] || []).find(r => r.requestId === requestId);
+            if (!request || !currentUser) return;
+            const completionState = getTradeCompletionState(request);
+            const isBuyer = request.requesterId === currentUser.id;
+            const isSeller = request.ownerId === currentUser.id;
+            if (!isBuyer && !isSeller) return;
+            if (isBuyer) completionState.buyer = true;
+            if (isSeller) completionState.seller = true;
+            request.completionState = completionState;
+            request.updatedAt = new Date().toISOString();
+            if (completionState.buyer && completionState.seller) {
+                request.status = 'completed';
+                request.history = Array.isArray(request.history) ? request.history : [];
+                request.history.push({ when: request.updatedAt, actor: currentUser.username || 'User', note: `${currentUser.displayName || currentUser.username || 'User'} marked the trade as complete.` });
+            } else if (completionState.buyer && !completionState.seller) {
+                request.status = 'awaiting_seller_completion';
+            } else if (!completionState.buyer && completionState.seller) {
+                request.status = 'awaiting_buyer_completion';
+            }
+            localStorage.setItem('mtgTradeRequests_v2', JSON.stringify(tradeRequests));
+            renderTradeNotifications();
         }
 
         function getTradeActionRecipientId(request) {
@@ -4476,25 +4631,24 @@
                     return normalizedStatus === 'pending' || normalizedStatus === 'countered';
                 }
                 if (currentTradeOffersTab === 'accepted') {
-                    return normalizedStatus === 'accepted' || normalizedStatus === 'completed';
+                    return ['accepted', 'awaiting_buyer_completion', 'awaiting_seller_completion'].includes(normalizedStatus);
                 }
                 if (currentTradeOffersTab === 'declined') {
                     return normalizedStatus === 'declined' || normalizedStatus === 'cancelled';
                 }
                 if (currentTradeOffersTab === 'history') {
-                    return ['accepted', 'completed', 'declined', 'cancelled'].includes(normalizedStatus);
+                    return ['accepted', 'awaiting_buyer_completion', 'awaiting_seller_completion', 'completed', 'declined', 'cancelled'].includes(normalizedStatus);
                 }
                 return false;
             });
 
-            if (currentTradeOffersTab === 'history') {
-                filteredRequests = filteredRequests.filter(request => matchesTradeHistorySearch(request, currentTradeHistorySearch));
-                filteredRequests.sort((a, b) => {
-                    const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
-                    const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
-                    return currentTradeHistorySort === 'oldest' ? aTime - bTime : bTime - aTime;
-                });
-            }
+            filteredRequests = filteredRequests.filter(request => matchesTradeHistorySearch(request, currentTradeOffersTab === 'history' ? currentTradeHistorySearch : currentTradeOffersSearch));
+            filteredRequests.sort((a, b) => {
+                const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
+                const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
+                const sortVal = currentTradeOffersTab === 'history' ? currentTradeHistorySort : currentTradeOffersSort;
+                return sortVal === 'oldest' ? aTime - bTime : bTime - aTime;
+            });
 
             const topTabHtml = ['made', 'received'].map(section => {
                 const label = section === 'made' ? 'Offers You Made' : 'Offers You Received';
@@ -4508,35 +4662,41 @@
                 return `<button class="offer-subtab-button ${activeClass}" onclick="setActiveTradeOffersTab('${tab}')">${label}</button>`;
             }).join('');
 
-            const historyToolbar = currentTradeOffersTab === 'history'
+            const offerToolbar = ['open', 'accepted', 'declined', 'history'].includes(currentTradeOffersTab)
                 ? `
                     <div class="trade-history-toolbar" style="display:flex; gap:12px; align-items:center; margin: 14px 0 10px; flex-wrap:wrap;">
                         <input
                             type="text"
-                            value="${escapeHtml(currentTradeHistorySearch)}"
+                            value="${escapeHtml(currentTradeOffersTab === 'history' ? currentTradeHistorySearch : currentTradeOffersSearch)}"
                             placeholder="Search by card name or trader username/email..."
-                            oninput="currentTradeHistorySearch = this.value; renderTradeNotifications();"
+                            oninput="${currentTradeOffersTab === 'history' ? 'currentTradeHistorySearch' : 'currentTradeOffersSearch'} = this.value; renderTradeNotifications();"
                             style="flex:1; min-width:220px; background:#111; color:#fff; border:1px solid #333; border-radius:8px; padding:10px 12px;"
                         />
                         <select
-                            onchange="currentTradeHistorySort = this.value; renderTradeNotifications();"
+                            onchange="${currentTradeOffersTab === 'history' ? 'currentTradeHistorySort' : 'currentTradeOffersSort'} = this.value; renderTradeNotifications();"
                             style="background:#111; color:#fff; border:1px solid #333; border-radius:8px; padding:10px 12px; min-width:190px;"
                         >
-                            <option value="newest" ${currentTradeHistorySort === 'newest' ? 'selected' : ''}>Newest to Oldest</option>
-                            <option value="oldest" ${currentTradeHistorySort === 'oldest' ? 'selected' : ''}>Oldest to Newest</option>
+                            <option value="newest" ${(currentTradeOffersTab === 'history' ? currentTradeHistorySort : currentTradeOffersSort) === 'newest' ? 'selected' : ''}>Newest to Oldest</option>
+                            <option value="oldest" ${(currentTradeOffersTab === 'history' ? currentTradeHistorySort : currentTradeOffersSort) === 'oldest' ? 'selected' : ''}>Oldest to Newest</option>
                         </select>
                     </div>
                 `
                 : '';
 
+            const emptyMessage = currentTradeOffersTab === 'history' && currentTradeHistorySearch
+                ? `No trade history found matching '${escapeHtml(currentTradeHistorySearch)}'.`
+                : currentTradeOffersTab !== 'history' && currentTradeOffersSearch
+                    ? `No trade offers found matching '${escapeHtml(currentTradeOffersSearch)}'.`
+                    : `No ${currentTradeOffersTab} offers in this view.`;
+
             const requestCards = filteredRequests.length > 0
                 ? filteredRequests.map(request => renderOfferRequestCard(request, currentTradeOffersSection === 'made')).join('')
-                : `<div class="offer-card" style="color:#999;">${currentTradeOffersTab === 'history' && currentTradeHistorySearch ? `No trade history found matching '${escapeHtml(currentTradeHistorySearch)}'.` : `No ${currentTradeOffersTab} offers in this view.`}</div>`;
+                : `<div class="offer-card" style="color:#999;">${emptyMessage}</div>`;
 
             panel.innerHTML = `
                 <div class="offer-tabs">${topTabHtml}</div>
                 <div class="offer-subtabs">${subTabHtml}</div>
-                ${historyToolbar}
+                ${offerToolbar}
                 <div class="offer-list-container">${requestCards}</div>
             `;
         }
@@ -4547,34 +4707,34 @@
             const peerName = isMadeSection ? getOwnerDisplayName(request.ownerId) : (request.requesterName || 'Trader');
             const ratingBadge = getUserRatingBadge(peerUserId, true);
             const normalizedStatus = getTradeNegotiationStatus(request);
-            const statusText = normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1);
-            const statusColors = {
-                pending: '#89cff0',
-                countered: '#f1c232',
-                accepted: '#7fed7f',
-                declined: '#ff6b6b',
-                completed: '#b5b5b5'
-            };
-            const statusColor = statusColors[normalizedStatus] || '#ccc';
+            const statusText = getTradeStatusLabel(request.status || normalizedStatus);
+            const statusColor = getTradeStatusColor(request.status || normalizedStatus);
+            const isExpanded = !!expandedTradeCards[request.requestId];
             let actionHtml = '';
             const isCurrentUsersTurn = isCurrentUserTurnToAct(request);
             const currentUserRole = currentUser ? getTradeRoleForUser(request, currentUser.id) : null;
             const currentUserTradeRating = currentUser && currentUser.id ? getUserTradeRatingRecord(request.requestId, currentUser.id) : null;
 
-            if (normalizedStatus === 'accepted' && request.requesterId === currentUser.id) {
-                actionHtml = `<button class="styled-btn" onclick="completeTrade('${request.cardId}', '${request.requestId}')">Complete Trade</button>`;
+            if ((normalizedStatus === 'accepted' || normalizedStatus === 'awaiting_buyer_completion' || normalizedStatus === 'awaiting_seller_completion') && currentUser && (request.requesterId === currentUser.id || request.ownerId === currentUser.id)) {
+                actionHtml = `<button class="styled-btn" onclick="event.stopPropagation(); markTradeAsComplete('${request.cardId}', '${request.requestId}')">Mark as Complete</button>`;
+                const targetUserId = getTradeCounterpartyId(request, currentUser.id);
+                const targetRoleLabel = currentUserRole === 'seller' ? 'Buyer' : 'Seller';
+                if (targetUserId && !currentUserTradeRating) {
+                    const requestJson = JSON.stringify(request).replace(/'/g, "&apos;");
+                    actionHtml += `<button class="styled-btn rate-trade-btn" onclick="event.stopPropagation();" data-trade-id="${escapeHtml(request.requestId)}" data-target-user-id="${escapeHtml(targetUserId)}" data-rater-role="${escapeHtml(currentUserRole || (request.requesterId === currentUser.id ? 'buyer' : 'seller'))}" data-request-json="${requestJson}">★ Rate ${targetRoleLabel}</button>`;
+                }
             } else if (['pending', 'countered'].includes(normalizedStatus) && isCurrentUsersTurn) {
                 if (normalizedStatus === 'pending') {
                     actionHtml = `
-                        <button class="styled-btn" onclick="respondToTradeRequest('${request.cardId}', '${request.requestId}', 'accept')">Accept</button>
-                        <button class="styled-btn secondary" onclick="respondToTradeRequest('${request.cardId}', '${request.requestId}', 'decline')">Decline</button>
-                        <button class="styled-btn" onclick="respondToTradeRequest('${request.cardId}', '${request.requestId}', 'counter')">Counter</button>
+                        <button class="styled-btn" onclick="event.stopPropagation(); respondToTradeRequest('${request.cardId}', '${request.requestId}', 'accept')">Accept</button>
+                        <button class="styled-btn secondary" onclick="event.stopPropagation(); respondToTradeRequest('${request.cardId}', '${request.requestId}', 'decline')">Decline</button>
+                        <button class="styled-btn" onclick="event.stopPropagation(); respondToTradeRequest('${request.cardId}', '${request.requestId}', 'counter')">Counter</button>
                     `;
                 } else {
                     actionHtml = `
-                        <button class="styled-btn" onclick="acceptCounterOffer('${request.cardId}', '${request.requestId}')">Accept Counter</button>
-                        <button class="styled-btn secondary" onclick="declineCounterOffer('${request.cardId}', '${request.requestId}')">Decline Counter</button>
-                        <button class="styled-btn" onclick="openCounterOfferModal('${request.cardId}', '${request.requestId}')">Counter Again</button>
+                        <button class="styled-btn" onclick="event.stopPropagation(); acceptCounterOffer('${request.cardId}', '${request.requestId}')">Accept Counter</button>
+                        <button class="styled-btn secondary" onclick="event.stopPropagation(); declineCounterOffer('${request.cardId}', '${request.requestId}')">Decline Counter</button>
+                        <button class="styled-btn" onclick="event.stopPropagation(); openCounterOfferModal('${request.cardId}', '${request.requestId}')">Counter Again</button>
                     `;
                 }
             } else if ((normalizedStatus === 'accepted' || normalizedStatus === 'completed') && currentUser && currentUserRole && !currentUserTradeRating) {
@@ -4582,7 +4742,7 @@
                 const targetRoleLabel = currentUserRole === 'seller' ? 'Buyer' : 'Seller';
                 if (targetUserId) {
                     const requestJson = JSON.stringify(request).replace(/'/g, "&apos;");
-                    actionHtml = `<button class="styled-btn rate-trade-btn" data-trade-id="${escapeHtml(request.requestId)}" data-target-user-id="${escapeHtml(targetUserId)}" data-rater-role="${escapeHtml(currentUserRole)}" data-request-json="${requestJson}">★ Rate ${targetRoleLabel}</button>`;
+                    actionHtml = `<button class="styled-btn rate-trade-btn" onclick="event.stopPropagation();" data-trade-id="${escapeHtml(request.requestId)}" data-target-user-id="${escapeHtml(targetUserId)}" data-rater-role="${escapeHtml(currentUserRole)}" data-request-json="${requestJson}">★ Rate ${targetRoleLabel}</button>`;
                 }
             } else if ((normalizedStatus === 'accepted' || normalizedStatus === 'completed') && currentUserTradeRating) {
                 actionHtml = '<span style="display:inline-block; padding:6px 10px; border-radius:999px; background:rgba(126,237,127,0.12); color:#9ae69a; border:1px solid rgba(126,237,127,0.35); font-size:12px; font-weight:700;">✓ Rated</span>';
@@ -4593,19 +4753,30 @@
                 ? `<div style="margin-top:10px; color:#999; font-size:12px;"><strong>History</strong><br>${request.history.map(event => `${escapeHtml(event.note)} <span style='color:#777;'>(${new Date(event.when).toLocaleString()})</span>`).join('<br>')}</div>`
                 : '';
             const turnBadge = ['pending', 'countered'].includes(normalizedStatus) ? getTradeTurnBadge(request) : { text: '', style: '' };
-
-            return `
-                <div class="offer-card">
-                    <div class="offer-card-header">
-                        <div style="color:#fff; font-size:15px;"><strong>${escapeHtml(cardMeta.name)}</strong> — ${escapeHtml(request.type)} ${isMadeSection ? 'to' : 'from'} <span style="display:inline-flex; align-items:center; gap:6px;">${escapeHtml(peerName)} ${renderUserRatingBadgeHtml(peerUserId, true, true)}</span></div>
-                        <div class="offer-card-status" style="color:${statusColor};">${statusText}</div>
-                    </div>
-                    ${turnBadge.text ? `<div style="margin-top:8px; ${turnBadge.style}; border-radius:999px; padding:5px 10px; font-size:11px; font-weight:bold; display:inline-block;">${escapeHtml(turnBadge.text)}</div>` : ''}
-                    <div class="offer-card-body">${escapeHtml(request.message)}</div>
-                    ${originalOfferLine}
-                    ${counterLine}
+            const summaryHtml = `
+                <div class="offer-card-header">
+                    <div style="color:#fff; font-size:15px;"><strong>${escapeHtml(cardMeta.name)}</strong> — ${escapeHtml(request.type)} ${isMadeSection ? 'to' : 'from'} <span style="display:inline-flex; align-items:center; gap:6px;">${escapeHtml(peerName)} ${renderUserRatingBadgeHtml(peerUserId, true, true)}</span></div>
+                    <div class="offer-card-status" style="color:${statusColor};">${statusText}</div>
+                </div>
+                ${turnBadge.text ? `<div style="margin-top:8px; ${turnBadge.style}; border-radius:999px; padding:5px 10px; font-size:11px; font-weight:bold; display:inline-block;">${escapeHtml(turnBadge.text)}</div>` : ''}
+                <div class="offer-card-body">${escapeHtml(request.message)}</div>
+                ${originalOfferLine}
+                ${counterLine}
+            `;
+            const detailHtml = `
+                <div class="offer-card-body">
                     ${historyHtml}
-                    <div class="offer-card-actions">${actionHtml}</div>
+                    ${request.comments && request.comments.length ? `<div style="margin-top:12px; color:#ddd; font-size:12px;"><strong>Comments</strong><br>${request.comments.map(comment => `${escapeHtml(comment.username || 'User')}: ${escapeHtml(comment.message || '')}`).join('<br>')}</div>` : ''}
+                </div>
+            `;
+            return `
+                <div class="offer-card" data-trade-id="${escapeHtml(request.requestId)}" onclick="toggleTradeCardExpansion('${request.requestId}')" style="cursor:pointer;">
+                    ${summaryHtml}
+                    ${isExpanded ? detailHtml : ''}
+                    <div class="offer-card-actions" onclick="event.stopPropagation();">${actionHtml}</div>
+                    <div style="margin-top:8px; color:#aaa; font-size:12px; text-align:right;">
+                        ${isExpanded ? 'Hide Details' : 'View Details'}
+                    </div>
                 </div>
             `;
         }
