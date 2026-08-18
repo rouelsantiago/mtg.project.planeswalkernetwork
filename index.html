@@ -1700,7 +1700,7 @@
                     <h3 id="ratingReviewModalTitle" style="margin: 0; color: #ff9e3b;">Rate This Trade</h3>
                     <button class="modal-close-btn" onclick="closeRatingReviewModal()">&times;</button>
                 </div>
-                <p style="color: #aaa; font-size:12px; margin: 0;">How was your trading experience?</p>
+                <p id="ratingReviewModalContext" style="color: #aaa; font-size:12px; margin: 0;">How was your trading experience?</p>
             </div>
             <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px;">
                 <div style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 26px; color: #ff9e3b;">
@@ -1714,6 +1714,36 @@
                 <div style="display: flex; justify-content: flex-end; gap: 10px;">
                     <button class="styled-btn secondary" onclick="closeRatingReviewModal()">Skip for Now</button>
                     <button class="styled-btn" onclick="submitUserRating()">Submit Review</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="userReviewsModal" class="modal-backdrop" onclick="closeUserReviewsModalOnBackdrop(event)">
+        <div class="modal-content" style="width: 980px; max-width: calc(100vw - 30px); max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;">
+            <div class="modal-header" style="padding: 15px 18px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div id="userReviewsAvatar" style="width:44px; height:44px; border-radius:50%; background:#2b2b2b; display:flex; align-items:center; justify-content:center; font-weight:700; color:#ff9e3b;">U</div>
+                    <div>
+                        <h3 id="userReviewsTitle" style="margin: 0; color: #ff9e3b;">Trader Profile</h3>
+                        <div id="userReviewsOnlineStatus" style="font-size: 12px; color: #aaa; margin-top:4px;">Online</div>
+                    </div>
+                </div>
+                <button class="modal-close-btn" onclick="closeUserReviewsModal()">&times;</button>
+            </div>
+            <div style="display: grid; grid-template-columns: 300px 1fr; min-height: 0;">
+                <div style="padding: 18px; border-right: 1px solid #333; background: #171717; overflow-y: auto;">
+                    <div style="font-size: 12px; color: #aaa; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 10px;">Trader Summary</div>
+                    <div id="userReviewsSummary" style="padding: 14px; background: #1f1f1f; border: 1px solid #333; border-radius: 10px; margin-bottom: 18px;"></div>
+                    <div style="font-size: 12px; color: #aaa; text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 12px;">Filter by Stars</div>
+                    <div id="userReviewsStarFilters" style="display:flex; flex-direction:column; gap:8px;"></div>
+                </div>
+                <div style="padding: 18px; overflow-y: auto;">
+                    <div style="display:flex; gap:10px; margin-bottom: 16px; border-bottom: 1px solid #333; padding-bottom: 8px;">
+                        <button class="offer-tab-button active" id="userReviewsTabAbout" onclick="setUserReviewsTab('about')">Reviews About User</button>
+                        <button class="offer-tab-button" id="userReviewsTabBy" onclick="setUserReviewsTab('by')">Reviews By User</button>
+                    </div>
+                    <div id="userReviewsFeed"></div>
                 </div>
             </div>
         </div>
@@ -3429,6 +3459,7 @@
                 request.lastUpdatedBy = currentUser.id;
                 request.history.push({ when: request.updatedAt, actor: currentUser.username || 'Owner', note: `${getOwnerDisplayName(request.ownerId)} accepted the request.` });
                 request.requesterSeen = false;
+                triggerRatingForAcceptedTrade(request);
             } else if (action === 'decline') {
                 request.status = 'declined';
                 request.updatedAt = new Date().toISOString();
@@ -3463,6 +3494,7 @@
             });
             request.requesterSeen = false;
             request.ownerSeen = false;
+            triggerRatingForAcceptedTrade(request);
             localStorage.setItem('mtgTradeRequests_v2', JSON.stringify(tradeRequests));
             renderTradeNotifications();
             renderNotificationBadge();
@@ -3657,8 +3689,31 @@
             localStorage.setItem('UserRatings', JSON.stringify(ratings));
         }
 
+        async function syncUserRatingToSupabase(record) {
+            if (!isSupabaseConfigured() || !supabaseClient || !supabaseClient.from) return true;
+            try {
+                const { error } = await supabaseClient
+                    .from('user_ratings')
+                    .upsert({
+                        trade_id: record.tradeId,
+                        rater_user_id: record.raterUserId,
+                        rated_user_id: record.ratedUserId,
+                        rating: Number(record.score || 0),
+                        review_text: record.reviewText || '',
+                        created_at: record.createdAt || new Date().toISOString()
+                    }, { onConflict: 'trade_id,rater_user_id' });
+                if (error) {
+                    console.warn('Supabase rating sync failed', error);
+                }
+                return true;
+            } catch (e) {
+                console.warn('Supabase rating sync error', e);
+                return false;
+            }
+        }
+
         function getUserRatingSummary(userId) {
-            const ratings = getUserRatingsStore().filter(r => r.ratedUserId === userId);
+            const ratings = getUserRatingsStore().filter(r => r.ratedUserId === userId && Number(r.score || 0) > 0);
             if (!ratings.length) {
                 return { average: 0, count: 0, label: 'No reviews yet' };
             }
@@ -3672,15 +3727,148 @@
             if (!summary.count) {
                 return compact ? '★ New' : '★ New trader';
             }
-            return compact ? `★ ${summary.average} (${summary.count})` : `★ ${summary.average} (${summary.count} trades)`;
+            return compact ? `★ ${summary.average.toFixed(1)} (${summary.count})` : `★ ${summary.average.toFixed(1)} (${summary.count} reviews)`;
         }
 
-        function maybeTriggerRatingModalForTrade(request) {
+        function getTradeReviewTargetUserId(request, viewerUserId) {
+            if (!request) return null;
+            if (!viewerUserId) return request.ownerId;
+            return request.requesterId === viewerUserId ? request.ownerId : request.requesterId;
+        }
+
+        function getTradeContextSummary(request) {
+            const cardName = cardMetadataCache[request.cardId]?.name || 'Card';
+            const direction = request.requesterId === currentUser.id ? 'Received' : 'Sent';
+            return `Verified trade (${direction}) 🃏 ${cardName}`;
+        }
+
+        function updateCurrentUserProfileDisplay() {
+            const profileLabel = document.getElementById('navProfileUsername');
+            if (!profileLabel || !currentUser) return;
+            const displayName = currentUser.displayName || currentUser.username || 'My Profile';
+            const badge = getUserRatingBadge(currentUser.id, true);
+            profileLabel.innerHTML = `${escapeHtml(displayName)} <span style="font-size:11px; opacity:0.9; cursor:pointer;" onclick="openUserReviewsModal('${currentUser.id}')">${escapeHtml(badge)}</span>`;
+        }
+
+        function triggerRatingForAcceptedTrade(request) {
             if (!request || !currentUser) return;
-            const ratedUserId = request.requesterId === currentUser.id ? request.ownerId : request.requesterId;
+            const ratedUserId = getTradeReviewTargetUserId(request, currentUser.id);
+            if (!ratedUserId) return;
             const existing = getUserRatingsStore().find(r => r.tradeId === request.requestId && r.raterUserId === currentUser.id && r.ratedUserId === ratedUserId);
             if (existing) return;
             openRatingReviewModal(request, ratedUserId);
+        }
+
+        function maybeTriggerRatingModalForTrade(request) {
+            triggerRatingForAcceptedTrade(request);
+        }
+
+        function openRatingReviewModal(request, ratedUserId) {
+            const modal = document.getElementById('ratingReviewModal');
+            if (!modal || !request || !ratedUserId) return;
+            modal.dataset.tradeId = request.requestId;
+            modal.dataset.ratedUserId = ratedUserId;
+            modal.dataset.selectedScore = '0';
+            const ratedName = getDisplayUserNameById(ratedUserId) || 'this trader';
+            document.getElementById('ratingReviewModalTitle').textContent = `Rate Your Trade with ${ratedName}`;
+            document.getElementById('ratingReviewModalContext').textContent = `Verified trade: ${getTradeContextSummary(request)}`;
+            document.getElementById('ratingReviewText').value = '';
+            setSelectedStar(0);
+            modal.style.display = 'flex';
+        }
+
+        function openUserReviewsModal(userId) {
+            if (!userId) return;
+            const modal = document.getElementById('userReviewsModal');
+            if (!modal) return;
+            const userName = getDisplayUserNameById(userId) || 'Trader';
+            const summary = getUserRatingSummary(userId);
+            document.getElementById('userReviewsTitle').textContent = `${userName}`;
+            document.getElementById('userReviewsAvatar').textContent = (userName || 'U').charAt(0).toUpperCase();
+            document.getElementById('userReviewsOnlineStatus').textContent = 'Active trader';
+            const summaryHtml = `
+                <div style="font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 8px;">${escapeHtml(userName)}</div>
+                <div style="font-size: 22px; color: #ff9e3b; margin-bottom: 6px;">${'★'.repeat(Math.min(5, Math.max(1, Math.round(summary.average || 0))))}${'☆'.repeat(5 - Math.min(5, Math.max(1, Math.round(summary.average || 0))))}</div>
+                <div style="color: #ff9e3b; font-weight: 700; font-size: 20px;">${summary.count ? summary.average.toFixed(1) : '0.0'} out of 5</div>
+                <div style="color: #aaa; font-size: 12px; margin-top: 8px;">based on ${summary.count} review${summary.count === 1 ? '' : 's'}</div>
+            `;
+            document.getElementById('userReviewsSummary').innerHTML = summaryHtml;
+            const filters = [5,4,3,2,1].map(star => {
+                const label = `${star} star${star === 1 ? '' : 's'}`;
+                const count = getUserRatingsStore().filter(r => r.ratedUserId === userId && Number(r.score || 0) === star).length;
+                return `<button class="styled-btn secondary" style="width:100%; justify-content:space-between; display:flex;" onclick="renderUserReviewsFeed('${userId}', ${star})"><span>${label}</span><span>${count}</span></button>`;
+            }).join('');
+            document.getElementById('userReviewsStarFilters').innerHTML = filters;
+            renderUserReviewsFeed(userId, 0);
+            modal.style.display = 'flex';
+        }
+
+        function closeUserReviewsModal() {
+            const modal = document.getElementById('userReviewsModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function closeUserReviewsModalOnBackdrop(event) {
+            if (event.target.id === 'userReviewsModal') closeUserReviewsModal();
+        }
+
+        function setUserReviewsTab(tab) {
+            const aboutBtn = document.getElementById('userReviewsTabAbout');
+            const byBtn = document.getElementById('userReviewsTabBy');
+            const activeTab = tab || 'about';
+            if (aboutBtn) aboutBtn.classList.toggle('active', activeTab === 'about');
+            if (byBtn) byBtn.classList.toggle('active', activeTab === 'by');
+            const userId = document.getElementById('userReviewsModal').dataset.userId;
+            renderUserReviewsFeed(userId, Number(document.getElementById('userReviewsModal').dataset.filterStar || 0), activeTab);
+        }
+
+        function renderUserReviewsFeed(userId, minimumStar = 0, tab = 'about') {
+            const modal = document.getElementById('userReviewsModal');
+            if (!modal) return;
+            modal.dataset.userId = userId;
+            modal.dataset.filterStar = String(minimumStar || 0);
+            const allRatings = getUserRatingsStore();
+            const entries = tab === 'by'
+                ? allRatings.filter(r => r.raterUserId === userId)
+                : allRatings.filter(r => r.ratedUserId === userId);
+            const filtered = minimumStar > 0 ? entries.filter(r => Number(r.score || 0) >= minimumStar) : entries;
+            const feed = document.getElementById('userReviewsFeed');
+            if (!feed) return;
+            if (!filtered.length) {
+                feed.innerHTML = '<div style="color:#888;">No reviews match this filter yet.</div>';
+                return;
+            }
+            feed.innerHTML = filtered.map(review => {
+                const reviewUser = getDisplayUserNameById(tab === 'by' ? review.ratedUserId : review.raterUserId) || 'Trader';
+                const cardName = review.tradeContext || 'Verified trade';
+                const stars = '★'.repeat(Number(review.score || 0)) + '☆'.repeat(5 - Number(review.score || 0));
+                const date = review.createdAt ? new Date(review.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Recent';
+                const badge = review.tradeContext ? `<div style="margin-top:8px; color:#ff9e3b; font-size:12px;">Verified trade 🃏 ${escapeHtml(cardName)}</div>` : '';
+                const comment = (review.reviewText || '').trim();
+                return `
+                    <div style="padding: 14px; border: 1px solid #333; border-radius: 10px; background: #1b1b1b; margin-bottom: 12px;">
+                        <div style="display:flex; justify-content:space-between; gap:12px; margin-bottom: 8px;">
+                            <div>
+                                <div style="font-weight:700; color:#fff;">${escapeHtml(reviewUser)}</div>
+                                <div style="color:#ff9e3b; font-size:13px;">${stars}</div>
+                            </div>
+                            <div style="color:#aaa; font-size:12px; text-align:right;">Reviewed on ${escapeHtml(date)}</div>
+                        </div>
+                        ${badge}
+                        ${comment ? `<div style="margin-top:10px; color:#ddd; line-height:1.6;">${escapeHtml(comment)}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getDisplayUserNameById(userId) {
+            if (!userId) return 'Trader';
+            if (currentUser && currentUser.id === userId) return currentUser.displayName || currentUser.username || 'You';
+            const friend = friendsList.find(f => f.id === userId);
+            if (friend) return friend.name || friend.username || friend.email || 'Trader';
+            const userKey = Object.keys(users || {}).find(key => users[key] && users[key].id === userId);
+            if (userKey) return users[userKey].username || users[userKey].email || 'Trader';
+            return userId;
         }
 
         function submitUserRating() {
@@ -3695,18 +3883,30 @@
                 return;
             }
             const ratings = getUserRatingsStore();
-            ratings.push({
+            const duplicate = ratings.find(r => r.tradeId === tradeId && r.raterUserId === currentUser.id && r.ratedUserId === ratedUserId);
+            if (duplicate) {
+                closeRatingReviewModal();
+                return;
+            }
+            const record = {
                 raterUserId: currentUser.id,
                 ratedUserId: ratedUserId,
                 tradeId: tradeId,
                 score: score,
                 reviewText: reviewText,
-                createdAt: new Date().toISOString()
-            });
+                createdAt: new Date().toISOString(),
+                tradeContext: getTradeContextSummary((tradeRequests[Object.keys(tradeRequests).find(cardId => (tradeRequests[cardId] || []).some(r => r.requestId === tradeId))] || []).find(r => r.requestId === tradeId) || { cardId: null, requesterId: currentUser.id, ownerId: ratedUserId })
+            };
+            ratings.push(record);
             saveUserRatingsStore(ratings);
+            void syncUserRatingToSupabase(record);
             closeRatingReviewModal();
             renderTradeNotifications();
             renderBrowseMarketplacePanel();
+            updateCurrentUserProfileDisplay();
+            if (document.getElementById('userReviewsModal').style.display === 'flex') {
+                openUserReviewsModal(ratedUserId);
+            }
         }
 
         function completeTrade(cardId, requestId) {
@@ -3829,6 +4029,7 @@
             return visibleListings.slice().reverse().map(listing => {
                 const cardMeta = cardMetadataCache[listing.cardId] || { name: 'Unknown Card', set: '???' };
                 const sellerDisplay = listing.ownerName || 'Trader';
+                const userRating = getUserRatingBadge(listing.ownerId, true);
                 const imageUrl = getCardPreviewImage(cardMeta, 0) || cardMeta.art_crop || cardMeta.image_uris?.border_crop || cardMeta.image_uris?.large || cardMeta.image_uris?.normal || cardMeta.image_uris?.png || '';
                 return `
                     <div class="offer-card trade-listing-card">
@@ -3841,7 +4042,7 @@
                                 <div class="offer-card-status" style="color:#89cff0;">${escapeHtml(listing.condition || 'NM')}</div>
                             </div>
                             <div class="offer-card-body">
-                                <div><strong>Seller:</strong> ${escapeHtml(sellerDisplay)}</div>
+                                <div><strong>Seller:</strong> <span style="cursor:pointer;" onclick="openUserReviewsModal('${listing.ownerId}')">${escapeHtml(sellerDisplay)} ${escapeHtml(userRating)}</span></div>
                                 <div><strong>Price / Trade:</strong> ${escapeHtml(listing.price || 'No offer set')}</div>
                                 ${listing.notes ? `<div style="margin-top:8px;">${escapeHtml(listing.notes)}</div>` : ''}
                             </div>
@@ -3971,7 +4172,9 @@
 
         function renderOfferRequestCard(request, isMadeSection) {
             const cardMeta = cardMetadataCache[request.cardId] || { name: 'Unknown Card' };
-            const peerName = isMadeSection ? getOwnerDisplayName(request.ownerId) : request.requesterName;
+            const peerUserId = isMadeSection ? request.ownerId : request.requesterId;
+            const peerName = isMadeSection ? getOwnerDisplayName(request.ownerId) : (request.requesterName || 'Trader');
+            const ratingBadge = getUserRatingBadge(peerUserId, true);
             const normalizedStatus = getTradeNegotiationStatus(request);
             const statusText = normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1);
             const statusColors = {
@@ -4013,7 +4216,7 @@
             return `
                 <div class="offer-card">
                     <div class="offer-card-header">
-                        <div style="color:#fff; font-size:15px;"><strong>${escapeHtml(cardMeta.name)}</strong> — ${escapeHtml(request.type)} ${isMadeSection ? 'to' : 'from'} ${escapeHtml(peerName)}</div>
+                        <div style="color:#fff; font-size:15px;"><strong>${escapeHtml(cardMeta.name)}</strong> — ${escapeHtml(request.type)} ${isMadeSection ? 'to' : 'from'} <span style="cursor:pointer;" onclick="openUserReviewsModal('${peerUserId}')">${escapeHtml(peerName)} ${escapeHtml(ratingBadge)}</span></div>
                         <div class="offer-card-status" style="color:${statusColor};">${statusText}</div>
                     </div>
                     ${turnBadge.text ? `<div style="margin-top:8px; ${turnBadge.style}; border-radius:999px; padding:5px 10px; font-size:11px; font-weight:bold; display:inline-block;">${escapeHtml(turnBadge.text)}</div>` : ''}
