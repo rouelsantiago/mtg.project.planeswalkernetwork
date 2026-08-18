@@ -381,6 +381,29 @@
             border-radius: 12px;
             padding: 14px;
         }
+        .trade-listing-card {
+            display: grid;
+            grid-template-columns: 126px minmax(0, 1fr);
+            gap: 14px;
+            align-items: stretch;
+        }
+        .trade-listing-visual {
+            width: 126px;
+            height: 176px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #0f0f0f;
+            border: 1px solid #2a2a2a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .trade-listing-visual img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
         .offer-card .offer-card-header {
             display: flex;
             justify-content: space-between;
@@ -1308,7 +1331,7 @@
             </button>
             <div id="navDropdownMenu" class="nav-dropdown-content">
                 <div class="nav-dropdown-item" onclick="navigateToView('my-binder')">📕 My Binder</div>
-                <div class="nav-dropdown-item" onclick="navigateToView('offers')">💬 Offers <span id="offersMenuBadge" class="offer-menu-badge" style="display:none;">0</span></div>
+                <div class="nav-dropdown-item" onclick="navigateToView('offers')">💬 Trade Hub <span id="offersMenuBadge" class="offer-menu-badge" style="display:none;">0</span></div>
                 <div class="nav-dropdown-item" onclick="navigateToView('friends')">👥 Friends' Binders</div>
                 <div class="nav-dropdown-item" style="border-top: 1px solid #333; color: #ff4a4a;" onclick="logoutUser()">🚪 Logout</div>
             </div>
@@ -1490,8 +1513,13 @@
             <div id="view-offers" class="app-view">
                 <div class="collection-section" style="margin-top: 40px;">
                     <div class="collection-section-header">
-                        <h2>Offers</h2>
-                        <div class="section-meta-note">View active incoming and outgoing trade requests, plus a complete history of completed trades.</div>
+                        <h2>Trade Hub</h2>
+                        <div class="section-meta-note">Manage your listings, review trade activity, and browse the public marketplace.</div>
+                    </div>
+                    <div id="tradeHubTabs" class="offer-tabs" style="margin-bottom: 18px;">
+                        <button class="offer-tab-button active" data-trade-hub-tab="my-listings" onclick="setTradeHubTab('my-listings')">My Listings</button>
+                        <button class="offer-tab-button" data-trade-hub-tab="offers" onclick="setTradeHubTab('offers')">Offers</button>
+                        <button class="offer-tab-button" data-trade-hub-tab="browse" onclick="setTradeHubTab('browse')">Browse Marketplace</button>
                     </div>
                     <div id="offersPanel"></div>
                 </div>
@@ -1599,6 +1627,10 @@
                 <p style="color: #aaa; font-size:12px; margin: 0;">Use this box to leave a note about buying or trading for this card.</p>
             </div>
             <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px;">
+                <div id="listingContextSummary" style="display: none; background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 12px; color: #eee;">
+                    <div style="font-size: 12px; color: #ff9e3b; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Listing Details</div>
+                    <div id="listingContextContent" style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #ddd;"></div>
+                </div>
                 <div id="requestFormArea" style="display: flex; flex-direction: column; gap: 12px;">
                     <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
                         <label for="requestTypeSelect" style="color:#aaa; font-size:13px; font-weight:bold;">Action</label>
@@ -1608,8 +1640,9 @@
                         </select>
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 8px;">
-                        <label id="requestOfferLabel" for="requestOfferInput" style="color:#aaa; font-size:13px; font-weight:bold;">Offer</label>
-                        <input id="requestOfferInput" class="styled-input" placeholder="Offer cards to trade, comma-separated" style="width: 100%;" />
+                        <label id="requestOfferLabel" for="requestOfferInput" style="color:#aaa; font-size:13px; font-weight:bold;">Offer Builder</label>
+                        <div id="requestOfferBuilder" style="display: flex; flex-direction: column; gap: 12px;"></div>
+                        <input id="requestOfferInput" type="hidden" />
                     </div>
                     <textarea id="commentInputField" class="styled-input" placeholder="Leave a comment or trading interest note..." style="height: 100px; resize: vertical;"></textarea>
                     <div style="display: flex; justify-content: flex-end; gap: 10px;">
@@ -1622,6 +1655,66 @@
                 <div id="commentListBody" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;"></div>
                 <input type="hidden" id="commentCardId">
                 <input type="hidden" id="commentModalOwnerId">
+            </div>
+        </div>
+    </div>
+
+    <div id="counterOfferModal" class="modal-backdrop" onclick="closeCounterOfferModalOnBackdrop(event)">
+        <div class="modal-content" style="width: 560px;">
+            <div class="modal-header" style="padding: 15px; border-bottom: 1px solid #333; display: flex; flex-direction: column; gap: 12px;">
+                <div class="modal-header-top" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 id="counterOfferModalTitle" style="margin: 0; color: #ff9e3b;">Counter Offer for Card</h3>
+                    <button class="modal-close-btn" onclick="closeCounterOfferModal()">&times;</button>
+                </div>
+                <p style="color: #aaa; font-size:12px; margin: 0;">Adjust the offer terms and send a revised proposal.</p>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px;">
+                <div id="counterOfferOriginalSummary" style="display: block; background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 12px; color: #eee;">
+                    <div style="font-size: 12px; color: #ff9e3b; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Original Offer / Previous Terms</div>
+                    <div id="counterOfferOriginalContent" style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #ddd;"></div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <label for="counterOfferBuilder" style="color:#aaa; font-size:13px; font-weight:bold;">Counter Proposal</label>
+                    <div id="counterOfferBuilder" style="display: flex; flex-direction: column; gap: 12px;"></div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <label style="color:#aaa; font-size:13px; font-weight:bold;">Negotiation Thread</label>
+                    <div id="counterThreadHistory" style="max-height: 170px; overflow-y: auto; background: #171717; border: 1px solid #333; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px;"></div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <label for="counterOfferNote" style="color:#aaa; font-size:13px; font-weight:bold;">Counter Note / Message</label>
+                    <textarea id="counterOfferNote" class="styled-input" placeholder="Counter note / message..." style="height: 110px; resize: vertical;"></textarea>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button class="styled-btn secondary" onclick="closeCounterOfferModal()">Cancel</button>
+                    <button class="styled-btn" id="counterOfferSubmitBtn" onclick="sendCounterOffer()">Send Counter Offer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="ratingReviewModal" class="modal-backdrop" onclick="closeRatingReviewModalOnBackdrop(event)">
+        <div class="modal-content" style="width: 460px;">
+            <div class="modal-header" style="padding: 15px; border-bottom: 1px solid #333; display: flex; flex-direction: column; gap: 12px;">
+                <div class="modal-header-top" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 id="ratingReviewModalTitle" style="margin: 0; color: #ff9e3b;">Rate This Trade</h3>
+                    <button class="modal-close-btn" onclick="closeRatingReviewModal()">&times;</button>
+                </div>
+                <p style="color: #aaa; font-size:12px; margin: 0;">How was your trading experience?</p>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 26px; color: #ff9e3b;">
+                    <button type="button" class="star-rating-btn" data-star="1" style="background: transparent; border: none; cursor: pointer; color: #ff9e3b;">★</button>
+                    <button type="button" class="star-rating-btn" data-star="2" style="background: transparent; border: none; cursor: pointer; color: #ff9e3b;">★</button>
+                    <button type="button" class="star-rating-btn" data-star="3" style="background: transparent; border: none; cursor: pointer; color: #ff9e3b;">★</button>
+                    <button type="button" class="star-rating-btn" data-star="4" style="background: transparent; border: none; cursor: pointer; color: #ff9e3b;">★</button>
+                    <button type="button" class="star-rating-btn" data-star="5" style="background: transparent; border: none; cursor: pointer; color: #ff9e3b;">★</button>
+                </div>
+                <textarea id="ratingReviewText" class="styled-input" placeholder="Optional review..." style="height: 110px; resize: vertical;"></textarea>
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button class="styled-btn secondary" onclick="closeRatingReviewModal()">Skip for Now</button>
+                    <button class="styled-btn" onclick="submitUserRating()">Submit Review</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1645,6 +1738,41 @@
         </div>
     </div>
 
+    <div id="tradeListingModal" class="modal-backdrop" onclick="closeTradeListingModalOnBackdrop(event)">
+        <div class="modal-content" style="width: 520px;">
+            <div class="modal-header" style="padding: 15px; border-bottom: 1px solid #333; display: flex; flex-direction: column; gap: 12px;">
+                <div class="modal-header-top" style="display: flex; justify-content: space-between; align-items: center;">
+                    <h3 id="tradeListingModalTitle" style="margin: 0; color: #ff9e3b;">List Card on Marketplace</h3>
+                    <button class="modal-close-btn" onclick="closeTradeListingModal()">&times;</button>
+                </div>
+                <p style="color: #aaa; font-size:12px; margin: 0;">Set a condition, price or trade preference, and optional notes.</p>
+            </div>
+            <div class="modal-body" style="display: flex; flex-direction: column; gap: 12px;">
+                <input type="hidden" id="tradeListingCardId">
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <label style="color:#aaa; font-size:13px; font-weight:bold;">Condition</label>
+                    <select id="tradeListingCondition" class="styled-select" style="width: 100%;">
+                        <option value="NM">Near Mint</option>
+                        <option value="LP">Light Play</option>
+                        <option value="MP">Moderate Play</option>
+                        <option value="HP">Heavily Played</option>
+                    </select>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <label style="color:#aaa; font-size:13px; font-weight:bold;">Price / Trade Preference</label>
+                    <input id="tradeListingPrice" class="styled-input" placeholder="e.g. $12 or trade for foil / up to $10" style="width: 100%;">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <label style="color:#aaa; font-size:13px; font-weight:bold;">Notes</label>
+                    <textarea id="tradeListingNotes" class="styled-input" placeholder="List anything buyers should know about this card, like sleeve condition or shipping details..." style="width: 100%; min-height: 110px; resize: vertical;"></textarea>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button class="styled-btn" onclick="publishTradeListing()">Publish Listing</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let autocompleteTimeout;
         let currentCardData = null; 
@@ -1660,9 +1788,11 @@
         let currentBinderView = 'list';
         let commentData = JSON.parse(localStorage.getItem('mtgCommentData_v2')) || {};
         let tradeRequests = JSON.parse(localStorage.getItem('mtgTradeRequests_v2')) || {};
+        let tradeListings = JSON.parse(localStorage.getItem('mtgTradeListings_v2')) || [];
         let binderCollapsedCategories = {};
         let currentTradeOffersSection = 'made';
         let currentTradeOffersTab = 'open';
+        let currentTradeHubTab = 'my-listings';
         
         // Keeps track of the collapsed status of individual category headers
         let collapsedCategoriesTracker = {};
@@ -2015,6 +2145,7 @@
                 renderCollectionTable();
                 if (currentCardData) displayResults(currentCardData);
             } else if (viewId === 'offers') {
+                currentTradeHubTab = 'my-listings';
                 currentTradeOffersSection = 'made';
                 currentTradeOffersTab = 'open';
                 markTradeNotificationsSeen();
@@ -2431,6 +2562,7 @@
                                         <div class="action-menu-item" onclick="event.stopPropagation(); executeDirectQuantityAdjust('${cardId}', '${curId}', 1)">➕ Add 1</div>
                                         <div class="action-menu-item" onclick="event.stopPropagation(); executeDirectQuantityAdjust('${cardId}', '${curId}', -1)">➖ Remove 1</div>
                                         <div class="action-menu-item" onclick="event.stopPropagation(); triggerDirectPrintingSwitchModal('${cardId}')">🖼️ Change Printing</div>
+                                        <div class="action-menu-item" onclick="event.stopPropagation(); openTradeListingModal('${cardId}')">📦 List on Marketplace</div>
                                     </div>
                                 </div>
                             </div>
@@ -2490,6 +2622,7 @@
                                 <div class="action-menu-item" onclick="executeDirectQuantityAdjust('${cardId}', '${curId}', 1)">➕ Add 1</div>
                                 <div class="action-menu-item" onclick="executeDirectQuantityAdjust('${cardId}', '${curId}', -1)">➖ Remove 1</div>
                                 <div class="action-menu-item" onclick="triggerDirectPrintingSwitchModal('${cardId}')">🖼️ Change Printing</div>
+                                <div class="action-menu-item" onclick="openTradeListingModal('${cardId}')">📦 List on Marketplace</div>
                             </div>
                         </div>
                     </td>
@@ -2613,6 +2746,442 @@
             return friend ? friend.name : ownerId;
         }
 
+        function createOfferBuilderItem(kind = 'cash') {
+            return {
+                id: 'offer_item_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+                kind: kind,
+                cashAmount: '',
+                cardQuery: '',
+                selectedCard: null,
+                selectedPrintingId: '',
+                printings: [],
+                condition: 'NM',
+                quantity: 1
+            };
+        }
+
+        function getOfferBuilderState() {
+            return window._offerBuilderState || [];
+        }
+
+        function setOfferBuilderState(items) {
+            window._offerBuilderState = items;
+        }
+
+        function resetOfferBuilderState() {
+            setOfferBuilderState([createOfferBuilderItem('cash')]);
+            renderOfferBuilder();
+        }
+
+        function buildOfferSummaryText(offerItems) {
+            if (!offerItems || offerItems.length === 0) return 'No trade items selected.';
+            const parts = offerItems.map(item => {
+                if (item.kind === 'cash') {
+                    const amount = Number(item.cashAmount || 0);
+                    return amount > 0 ? `$${amount.toFixed(2)}` : null;
+                }
+                if (!item.selectedCard) return null;
+                const qty = Math.max(1, Number(item.quantity || 1));
+                const cardName = item.selectedCard.name || 'Card';
+                const setName = item.selectedPrintingId && item.printings && item.printings.length
+                    ? (item.printings.find(print => print.id === item.selectedPrintingId)?.set_name || item.selectedCard.set_name || 'Unknown set')
+                    : (item.selectedCard.set_name || 'Unknown set');
+                return `${qty}x ${cardName} (${setName}) ${item.condition || 'NM'}`;
+            }).filter(Boolean);
+            return parts.length > 0 ? parts.join(' + ') : 'No trade items selected.';
+        }
+
+        function buildOfferItemsFromPayload(payload) {
+            if (!payload || (!payload.offeredItems && payload.offeredCards && payload.offeredCards.length === 0 && !payload.cashAmount)) {
+                return [createOfferBuilderItem('cash')];
+            }
+
+            const offerItems = [];
+            const seenCash = new Set();
+            const seenCards = new Set();
+
+            const offeredItems = Array.isArray(payload.offeredItems) ? payload.offeredItems : [];
+            const offeredCards = Array.isArray(payload.offeredCards) ? payload.offeredCards : [];
+
+            const normalizedItems = [...offeredItems];
+            if (normalizedItems.length === 0 && offeredCards.length > 0) {
+                offeredCards.forEach(card => {
+                    normalizedItems.push({
+                        kind: 'card',
+                        cardName: card.cardName,
+                        scryfallId: card.scryfallId || card.cardId,
+                        setName: card.setName,
+                        condition: card.condition,
+                        quantity: card.quantity
+                    });
+                });
+            }
+
+            if (payload.cashAmount && Number(payload.cashAmount) > 0 && !normalizedItems.some(item => item.kind === 'cash')) {
+                normalizedItems.push({ kind: 'cash', amount: Number(payload.cashAmount) });
+            }
+
+            normalizedItems.forEach(item => {
+                if (item.kind === 'cash') {
+                    const cashAmount = Number(item.amount || payload.cashAmount || 0);
+                    if (cashAmount <= 0 || seenCash.has(cashAmount)) return;
+                    seenCash.add(cashAmount);
+                    offerItems.push({
+                        id: 'offer_item_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+                        kind: 'cash',
+                        cashAmount: String(cashAmount),
+                        cardQuery: '',
+                        selectedCard: null,
+                        selectedPrintingId: '',
+                        printings: [],
+                        condition: 'NM',
+                        quantity: 1
+                    });
+                    return;
+                }
+
+                if (!item.cardName) return;
+                const key = `${item.cardName.toLowerCase()}|${(item.setName || '').toLowerCase()}|${item.condition || 'NM'}`;
+                if (seenCards.has(key)) return;
+                seenCards.add(key);
+
+                const scryfallId = item.scryfallId || item.cardId || item.id || item.cardName;
+                const setName = item.setName || 'Unknown set';
+                offerItems.push({
+                    id: 'offer_item_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+                    kind: 'card',
+                    cashAmount: '',
+                    cardQuery: item.cardName,
+                    selectedCard: { name: item.cardName, id: scryfallId, set_name: setName },
+                    selectedPrintingId: scryfallId,
+                    printings: [{ id: scryfallId, set_name: setName }],
+                    condition: item.condition || 'NM',
+                    quantity: Math.max(1, Number(item.quantity || 1))
+                });
+            });
+
+            return offerItems.length > 0 ? offerItems : [createOfferBuilderItem('cash')];
+        }
+
+        function buildStructuredOfferPayload() {
+            const offerItems = getOfferBuilderState().filter(item => {
+                if (item.kind === 'cash') return Number(item.cashAmount || 0) > 0;
+                return !!item.selectedCard;
+            });
+
+            const cashItems = offerItems.filter(item => item.kind === 'cash');
+            const cardItems = offerItems.filter(item => item.kind === 'card' && item.selectedCard);
+            const cashAmount = cashItems.reduce((sum, item) => sum + Number(item.cashAmount || 0), 0);
+
+            const offeredCards = cardItems.map(item => ({
+                cardName: item.selectedCard.name,
+                scryfallId: item.selectedCard.id,
+                setName: item.selectedPrintingId && item.printings && item.printings.length
+                    ? (item.printings.find(print => print.id === item.selectedPrintingId)?.set_name || item.selectedCard.set_name || 'Unknown set')
+                    : (item.selectedCard.set_name || 'Unknown set'),
+                condition: item.condition || 'NM',
+                quantity: Math.max(1, Number(item.quantity || 1))
+            }));
+
+            const offerType = offerItems.length === 0
+                ? 'CASH'
+                : (cashAmount > 0 && offeredCards.length > 0 ? 'MIXED' : (cashAmount > 0 ? 'CASH' : 'TRADE'));
+
+            return {
+                offerType,
+                cashAmount: Number(cashAmount.toFixed(2)),
+                offeredCards,
+                comment: document.getElementById('commentInputField').value.trim(),
+                offeredItems: offerItems.map(item => {
+                    if (item.kind === 'cash') {
+                        return { kind: 'cash', amount: Number(item.cashAmount || 0) };
+                    }
+                    return {
+                        kind: 'card',
+                        cardName: item.selectedCard.name,
+                        scryfallId: item.selectedCard.id,
+                        setName: item.selectedPrintingId && item.printings && item.printings.length
+                            ? (item.printings.find(print => print.id === item.selectedPrintingId)?.set_name || item.selectedCard.set_name || 'Unknown set')
+                            : (item.selectedCard.set_name || 'Unknown set'),
+                        condition: item.condition || 'NM',
+                        quantity: Math.max(1, Number(item.quantity || 1))
+                    };
+                }),
+                summary: buildOfferSummaryText(offerItems)
+            };
+        }
+
+        function renderCounterOfferBuilder() {
+            const container = document.getElementById('counterOfferBuilder');
+            if (!container) return;
+            const items = getOfferBuilderState();
+            container.innerHTML = '';
+
+            items.forEach(item => {
+                const itemTypeValue = item.kind === 'card' ? 'card' : 'cash';
+                const selectedPrinting = item.printings && item.printings.length
+                    ? item.printings.find(print => print.id === item.selectedPrintingId) || item.printings[0]
+                    : null;
+                const cardQueryValue = item.selectedCard ? item.selectedCard.name : (item.cardQuery || '');
+                const printingOptionsHtml = item.printings && item.printings.length
+                    ? item.printings.map(print => `<option value="${print.id}" ${print.id === item.selectedPrintingId ? 'selected' : ''}>${escapeHtml(print.set_name || print.name || 'Unknown set')}</option>`).join('')
+                    : '<option value="">No printings selected</option>';
+
+                const html = `
+                    <div class="offer-builder-item" style="padding: 12px; border: 1px solid #333; border-radius: 10px; background: #1a1a1a; display: flex; flex-direction: column; gap: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                            <select class="styled-select" data-offer-item-id="${item.id}" data-offer-role="kind" onchange="updateOfferBuilderItem('${item.id}', 'kind', this.value); renderCounterOfferBuilder()">
+                                <option value="cash" ${itemTypeValue === 'cash' ? 'selected' : ''}>Cash / Money</option>
+                                <option value="card" ${itemTypeValue === 'card' ? 'selected' : ''}>Card</option>
+                            </select>
+                            <button type="button" class="styled-btn secondary" style="padding: 8px 10px;" data-offer-item-id="${item.id}" data-offer-role="remove-item" onclick="removeOfferBuilderItem('${item.id}'); renderCounterOfferBuilder();">🗑</button>
+                        </div>
+                        ${item.kind === 'cash' ? `
+                            <input type="number" min="0" step="0.01" value="${escapeHtml(String(item.cashAmount || ''))}" data-offer-item-id="${item.id}" data-offer-role="cash-amount" class="styled-input" placeholder="Amount in USD / PHP" style="width: 100%;" oninput="updateOfferBuilderItem('${item.id}', 'cashAmount', this.value)" />
+                        ` : `
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                <input type="text" value="${escapeHtml(cardQueryValue)}" class="styled-input" placeholder="Search card name..." data-offer-item-id="${item.id}" data-offer-role="card-search" oninput="handleOfferBuilderAutocomplete('${item.id}', this.value)" style="width: 100%;" />
+                                <div id="offer-search-dropdown-${item.id}" class="custom-dropdown" style="position: relative; display: none; width: 100%;"></div>
+                                ${item.selectedCard ? `
+                                    <div style="display:flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                                        <span class="set-badge">${escapeHtml(item.selectedCard.name || 'Card')}</span>
+                                        <span style="color:#aaa; font-size:12px;">${escapeHtml(selectedPrinting ? selectedPrinting.set_name : (item.selectedCard.set_name || 'Unknown set'))}</span>
+                                    </div>
+                                ` : ''}
+                                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                    <select class="styled-select" data-offer-item-id="${item.id}" data-offer-role="printing-select" onchange="updateOfferBuilderItem('${item.id}', 'selectedPrintingId', this.value)" style="flex: 1; min-width: 170px;">
+                                        ${printingOptionsHtml}
+                                    </select>
+                                    <select class="styled-select" data-offer-item-id="${item.id}" data-offer-role="condition" onchange="updateOfferBuilderItem('${item.id}', 'condition', this.value)" style="min-width: 150px;">
+                                        <option value="NM" ${item.condition === 'NM' ? 'selected' : ''}>NM</option>
+                                        <option value="LP" ${item.condition === 'LP' ? 'selected' : ''}>LP</option>
+                                        <option value="MP" ${item.condition === 'MP' ? 'selected' : ''}>MP</option>
+                                        <option value="HP" ${item.condition === 'HP' ? 'selected' : ''}>HP</option>
+                                        <option value="Damaged" ${item.condition === 'Damaged' ? 'selected' : ''}>Damaged</option>
+                                    </select>
+                                    <input type="number" min="1" step="1" value="${Math.max(1, Number(item.quantity || 1))}" class="styled-input" data-offer-item-id="${item.id}" data-offer-role="quantity" style="width: 90px;" oninput="updateOfferBuilderItem('${item.id}', 'quantity', this.value)" />
+                                </div>
+                            </div>
+                        `}
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', html);
+            });
+
+            const addButton = document.createElement('button');
+            addButton.type = 'button';
+            addButton.className = 'styled-btn secondary';
+            addButton.style.marginTop = '4px';
+            addButton.textContent = '+ Add Item';
+            addButton.onclick = function() {
+                const nextItems = getOfferBuilderState();
+                nextItems.push(createOfferBuilderItem('cash'));
+                setOfferBuilderState(nextItems);
+                renderCounterOfferBuilder();
+            };
+            container.appendChild(addButton);
+        }
+
+        function renderOfferBuilder() {
+            const container = document.getElementById('requestOfferBuilder');
+            const type = document.getElementById('requestTypeSelect')?.value || 'trade';
+            if (!container) return;
+            const items = getOfferBuilderState();
+
+            if (type === 'buy') {
+                const cashItem = items[0] && items[0].kind === 'cash' ? items[0] : createOfferBuilderItem('cash');
+                setOfferBuilderState([cashItem]);
+                container.innerHTML = `
+                    <div class="offer-builder-item" style="padding: 12px; border: 1px solid #333; border-radius: 10px; background: #1a1a1a; display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                            <div style="color:#ff9e3b; font-weight:bold;">Cash Offer</div>
+                        </div>
+                        <input type="number" min="0" step="0.01" value="${escapeHtml(String(cashItem.cashAmount || ''))}" data-offer-item-id="${cashItem.id}" data-offer-role="cash-amount" class="styled-input" placeholder="Amount in USD / PHP" style="width: 100%;" oninput="updateOfferBuilderItem('${cashItem.id}', 'cashAmount', this.value)" />
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = items.map((item, index) => {
+                const itemTypeValue = item.kind === 'card' ? 'card' : 'cash';
+                const selectedPrinting = item.printings && item.printings.length
+                    ? item.printings.find(print => print.id === item.selectedPrintingId) || item.printings[0]
+                    : null;
+                const cardQueryValue = item.selectedCard ? item.selectedCard.name : (item.cardQuery || '');
+                const printingOptionsHtml = item.printings && item.printings.length
+                    ? item.printings.map(print => `<option value="${print.id}" ${print.id === item.selectedPrintingId ? 'selected' : ''}>${escapeHtml(print.set_name || print.name || 'Unknown set')}</option>`).join('')
+                    : '<option value="">No printings selected</option>';
+
+                return `
+                    <div class="offer-builder-item" style="padding: 12px; border: 1px solid #333; border-radius: 10px; background: #1a1a1a; display: flex; flex-direction: column; gap: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                            <select class="styled-select" data-offer-item-id="${item.id}" data-offer-role="kind" onchange="updateOfferBuilderItem('${item.id}', 'kind', this.value); renderOfferBuilder()">
+                                <option value="cash" ${itemTypeValue === 'cash' ? 'selected' : ''}>Cash / Money</option>
+                                <option value="card" ${itemTypeValue === 'card' ? 'selected' : ''}>Card</option>
+                            </select>
+                            <button type="button" class="styled-btn secondary" style="padding: 8px 10px;" data-offer-item-id="${item.id}" data-offer-role="remove-item" onclick="removeOfferBuilderItem('${item.id}')">🗑</button>
+                        </div>
+                        ${item.kind === 'cash' ? `
+                            <input type="number" min="0" step="0.01" value="${escapeHtml(String(item.cashAmount || ''))}" data-offer-item-id="${item.id}" data-offer-role="cash-amount" class="styled-input" placeholder="Amount in USD / PHP" style="width: 100%;" oninput="updateOfferBuilderItem('${item.id}', 'cashAmount', this.value)" />
+                        ` : `
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                <input type="text" value="${escapeHtml(cardQueryValue)}" class="styled-input" placeholder="Search card name..." data-offer-item-id="${item.id}" data-offer-role="card-search" oninput="handleOfferBuilderAutocomplete('${item.id}', this.value)" style="width: 100%;" />
+                                <div id="offer-search-dropdown-${item.id}" class="custom-dropdown" style="position: relative; display: none; width: 100%;"></div>
+                                ${item.selectedCard ? `
+                                    <div style="display:flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                                        <span class="set-badge">${escapeHtml(item.selectedCard.name || 'Card')}</span>
+                                        <span style="color:#aaa; font-size:12px;">${escapeHtml(selectedPrinting ? selectedPrinting.set_name : (item.selectedCard.set_name || 'Unknown set'))}</span>
+                                    </div>
+                                ` : ''}
+                                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                    <select class="styled-select" data-offer-item-id="${item.id}" data-offer-role="printing-select" onchange="updateOfferBuilderItem('${item.id}', 'selectedPrintingId', this.value)" style="flex: 1; min-width: 170px;">
+                                        ${printingOptionsHtml}
+                                    </select>
+                                    <select class="styled-select" data-offer-item-id="${item.id}" data-offer-role="condition" onchange="updateOfferBuilderItem('${item.id}', 'condition', this.value)" style="min-width: 150px;">
+                                        <option value="NM" ${item.condition === 'NM' ? 'selected' : ''}>NM</option>
+                                        <option value="LP" ${item.condition === 'LP' ? 'selected' : ''}>LP</option>
+                                        <option value="MP" ${item.condition === 'MP' ? 'selected' : ''}>MP</option>
+                                        <option value="HP" ${item.condition === 'HP' ? 'selected' : ''}>HP</option>
+                                        <option value="Damaged" ${item.condition === 'Damaged' ? 'selected' : ''}>Damaged</option>
+                                    </select>
+                                    <input type="number" min="1" step="1" value="${Math.max(1, Number(item.quantity || 1))}" class="styled-input" data-offer-item-id="${item.id}" data-offer-role="quantity" style="width: 90px;" oninput="updateOfferBuilderItem('${item.id}', 'quantity', this.value)" />
+                                </div>
+                            </div>
+                        `}
+                    </div>
+                `;
+            }).join('');
+
+            const addButton = document.createElement('button');
+            addButton.type = 'button';
+            addButton.className = 'styled-btn secondary';
+            addButton.style.marginTop = '4px';
+            addButton.textContent = '+ Add Item';
+            addButton.onclick = function() {
+                const nextItems = getOfferBuilderState();
+                nextItems.push(createOfferBuilderItem('cash'));
+                setOfferBuilderState(nextItems);
+                renderOfferBuilder();
+            };
+            container.appendChild(addButton);
+        }
+
+        function updateOfferBuilderItem(itemId, field, value) {
+            const items = getOfferBuilderState();
+            const item = items.find(entry => entry.id === itemId);
+            if (!item) return;
+
+            if (field === 'kind') {
+                item.kind = value === 'card' ? 'card' : 'cash';
+                if (item.kind === 'cash') {
+                    item.cashAmount = item.cashAmount || '';
+                    item.selectedCard = null;
+                    item.cardQuery = '';
+                    item.printings = [];
+                    item.selectedPrintingId = '';
+                } else {
+                    item.cashAmount = '';
+                    if (!item.selectedCard && !item.cardQuery) {
+                        item.cardQuery = '';
+                    }
+                }
+            } else if (field === 'cashAmount') {
+                item.cashAmount = value;
+            } else if (field === 'cardQuery') {
+                item.cardQuery = value;
+            } else if (field === 'selectedPrintingId') {
+                item.selectedPrintingId = value;
+            } else if (field === 'condition') {
+                item.condition = value;
+            } else if (field === 'quantity') {
+                item.quantity = Math.max(1, Number(value || 1));
+            }
+            setOfferBuilderState(items);
+        }
+
+        function removeOfferBuilderItem(itemId) {
+            const items = getOfferBuilderState();
+            const nextItems = items.filter(item => item.id !== itemId);
+            setOfferBuilderState(nextItems.length ? nextItems : [createOfferBuilderItem('cash')]);
+            renderOfferBuilder();
+        }
+
+        async function handleOfferBuilderAutocomplete(itemId, query) {
+            const items = getOfferBuilderState();
+            const item = items.find(entry => entry.id === itemId);
+            if (!item) return;
+
+            item.cardQuery = query;
+            setOfferBuilderState(items);
+
+            const dropdown = document.getElementById(`offer-search-dropdown-${itemId}`);
+            if (!dropdown) return;
+            if (!query || query.trim().length < 2) {
+                dropdown.style.display = 'none';
+                dropdown.innerHTML = '';
+                return;
+            }
+
+            try {
+                const response = await fetch(`https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(query.trim())}`);
+                const data = await response.json();
+                if (!data.data || !data.data.length) {
+                    dropdown.style.display = 'none';
+                    dropdown.innerHTML = '';
+                    return;
+                }
+
+                dropdown.innerHTML = data.data.slice(0, 8).map(name => `
+                    <div class="dropdown-item" data-offer-item-id="${itemId}" data-offer-card-name="${escapeHtml(name)}" onclick="selectOfferCard(this.dataset.offerItemId, this.dataset.offerCardName)">${escapeHtml(name)}</div>
+                `).join('');
+                dropdown.style.display = 'block';
+            } catch (error) {
+                console.warn('Scryfall autocomplete failed for trade offers:', error);
+                dropdown.style.display = 'none';
+            }
+        }
+
+        async function selectOfferCard(itemId, cardName) {
+            const items = getOfferBuilderState();
+            const item = items.find(entry => entry.id === itemId);
+            if (!item) return;
+
+            try {
+                const response = await fetch(`https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cardName.trim())}`);
+                if (!response.ok) return;
+                const card = await response.json();
+                item.selectedCard = card;
+                item.cardQuery = card.name;
+                item.selectedPrintingId = card.id;
+                item.printings = [];
+                item.condition = item.condition || 'NM';
+                item.quantity = Math.max(1, Number(item.quantity || 1));
+
+                if (card.prints_search_uri) {
+                    const printsResponse = await fetch(card.prints_search_uri);
+                    if (printsResponse.ok) {
+                        const printData = await printsResponse.json();
+                        item.printings = Array.isArray(printData.data) ? printData.data : [card];
+                        item.selectedPrintingId = item.printings.find(print => print.id === card.id)?.id || item.printings[0]?.id || card.id;
+                    } else {
+                        item.printings = [card];
+                    }
+                } else {
+                    item.printings = [card];
+                }
+
+                const dropdown = document.getElementById(`offer-search-dropdown-${itemId}`);
+                if (dropdown) {
+                    dropdown.style.display = 'none';
+                    dropdown.innerHTML = '';
+                }
+                setOfferBuilderState(items);
+                renderOfferBuilder();
+            } catch (error) {
+                console.warn('Scryfall card fetch failed for trade offers:', error);
+            }
+        }
+
         function openCardCommentModal(cardId, ownerId) {
             const modal = document.getElementById('cardCommentModal');
             const title = document.getElementById('commentModalTitle');
@@ -2622,9 +3191,12 @@
             const ownerHidden = document.getElementById('commentModalOwnerId');
             const requestFormArea = document.getElementById('requestFormArea');
             const requestStatusHeader = document.getElementById('requestStatusHeader');
+            const listingSummary = document.getElementById('listingContextSummary');
+            const listingContent = document.getElementById('listingContextContent');
 
             const ownerName = getOwnerDisplayName(ownerId);
             const isOwnerView = ownerId === currentUser.id;
+            const listing = tradeListings.find(item => item.ownerId === ownerId && item.cardId === cardId);
 
             title.textContent = `${isOwnerView ? 'Manage Requests for' : 'Request'} ${cardMetadataCache[cardId]?.name || 'Card'}`;
             hidden.value = cardId;
@@ -2632,11 +3204,25 @@
             commentTextarea.value = '';
             offerInput.value = '';
             document.getElementById('requestTypeSelect').value = 'trade';
+            resetOfferBuilderState();
             updateRequestOfferPlaceholder();
             requestFormArea.style.display = isOwnerView ? 'none' : 'flex';
             requestStatusHeader.textContent = isOwnerView
                 ? `Incoming requests for ${ownerName}`
                 : `Send a buy or trade request to ${ownerName}`;
+
+            if (listing) {
+                listingSummary.style.display = 'block';
+                listingContent.innerHTML = `
+                    <div><strong>Seller:</strong> ${escapeHtml(listing.ownerName || ownerName)}</div>
+                    <div><strong>Card Quality:</strong> ${escapeHtml(listing.condition || 'NM')}</div>
+                    <div><strong>Price / Trade:</strong> ${escapeHtml(listing.price || 'No price set')}</div>
+                    ${listing.notes ? `<div><strong>Listing Notes:</strong> ${escapeHtml(listing.notes)}</div>` : '<div><strong>Listing Notes:</strong> No notes added.</div>'}
+                `;
+            } else {
+                listingSummary.style.display = 'none';
+                listingContent.innerHTML = '';
+            }
 
             renderRequestList(cardId, ownerId, isOwnerView);
             renderCommentList(cardId);
@@ -2695,8 +3281,15 @@
                 if (!isOwnerView && request.status === 'accepted') {
                     actionsHtml = `<button class="styled-btn" style="padding:6px 10px;" onclick="completeTrade('${cardId}', '${request.requestId}')">Complete Trade</button>`;
                 }
-                const offerLine = request.offerDetails ? `<div style="margin-top:8px;color:#ffd166;"><strong>Offer:</strong> ${escapeHtml(request.offerDetails)}</div>` : '';
-                const counterLine = request.counterMessage ? `<div style="margin-top:8px;color:#ccc;"><strong>Counter Offer:</strong> ${escapeHtml(request.counterMessage)}</div>` : '';
+                if (!isOwnerView && request.status === 'countered') {
+                    actionsHtml = `
+                        <button class="styled-btn" style="padding:6px 10px;" onclick="acceptCounterOffer('${cardId}', '${request.requestId}')">Accept Counter</button>
+                        <button class="styled-btn secondary" style="padding:6px 10px;" onclick="declineCounterOffer('${cardId}', '${request.requestId}')">Decline Counter</button>
+                        <button class="styled-btn" style="padding:6px 10px;" onclick="openCounterOfferModal('${cardId}', '${request.requestId}')">Counter Again</button>
+                    `;
+                }
+                const originalOfferLine = request.originalOfferSummary || request.offerDetails ? `<div style="margin-top:8px;color:#ffd166;"><strong>Original Offer:</strong> ${escapeHtml(request.originalOfferSummary || request.offerDetails)}</div>` : '';
+                const counterLine = request.latestCounterSummary || request.counterMessage ? `<div style="margin-top:8px;color:#ccc;"><strong>Latest Counter:</strong> ${escapeHtml(request.latestCounterSummary || request.counterMessage)}</div>` : '';
                 const historyHtml = request.history && request.history.length > 0
                     ? `<div style="margin-top:10px; color:#aaa; font-size:12px;"><strong>History</strong><br>${request.history.map(event => `${escapeHtml(event.note)} <span style='color:#999;'>(${new Date(event.when).toLocaleString()})</span>`).join('<br>')}</div>`
                     : '';
@@ -2707,7 +3300,7 @@
                         <span style="color:${statusColor};">${request.status.charAt(0).toUpperCase() + request.status.slice(1)}</span>
                     </div>
                     <div class="comment-card-body">${escapeHtml(request.message)}</div>
-                    ${offerLine}
+                    ${originalOfferLine}
                     ${counterLine}
                     ${historyHtml}
                     <div style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap;">${actionsHtml}</div>
@@ -2723,7 +3316,8 @@
             const textarea = document.getElementById('commentInputField');
             const offerInput = document.getElementById('requestOfferInput');
             const message = textarea.value.trim();
-            let offerDetails = offerInput.value.trim();
+            const payload = buildStructuredOfferPayload();
+
             if (!message) {
                 alert('Please include a message with your request.');
                 return;
@@ -2732,22 +3326,25 @@
                 alert('You cannot request your own card from yourself.');
                 return;
             }
+
             if (type === 'buy') {
-                const numericOffer = Number(offerDetails);
-                if (!offerDetails || Number.isNaN(numericOffer) || numericOffer <= 0) {
-                    alert('Please enter a valid numeric offer amount for buying.');
+                const cashValue = Number(payload.cashAmount || 0);
+                if (!payload.offeredItems.length || Number.isNaN(cashValue) || cashValue <= 0) {
+                    alert('Please enter a valid numeric cash amount for this buy request.');
                     return;
                 }
-                offerDetails = `$${numericOffer.toFixed(2)}`;
             } else {
-                if (!offerDetails) {
-                    alert('Please enter the cards you are offering in exchange.');
+                const hasValidTradeContent = payload.offeredItems.length > 0;
+                if (!hasValidTradeContent) {
+                    alert('Add at least one cash amount or card item to build your trade offer.');
                     return;
                 }
             }
+
             if (!tradeRequests[cardId]) tradeRequests[cardId] = [];
 
             const requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+            const offerSummary = payload.summary || buildOfferSummaryText(payload.offeredItems);
             const request = {
                 requestId: requestId,
                 cardId: cardId,
@@ -2756,16 +3353,27 @@
                 requesterId: currentUser.id,
                 requesterName: currentUser.username || 'Guest',
                 type: type,
-                offerDetails: offerDetails,
+                offerDetails: offerSummary,
+                originalOfferSummary: offerSummary,
+                offeredItems: payload.offeredItems,
+                offerType: payload.offerType,
+                cashAmount: payload.cashAmount,
+                offeredCards: payload.offeredCards,
+                activeProposal: payload,
+                latestCounterSummary: '',
+                latestCounterPayload: null,
+                counterOfferPayload: null,
+                counterMessage: '',
                 message: message,
                 status: 'pending',
+                activeNegotiationState: 'initial',
+                turnOwnerId: ownerId,
                 ownerSeen: false,
                 requesterSeen: true,
-                counterMessage: '',
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
                 history: [
-                    { when: new Date().toISOString(), actor: currentUser.username || 'Guest', note: `Request created to ${type}.` }
+                    { when: new Date().toISOString(), actor: currentUser.username || 'Guest', note: `Initial offer created: ${offerSummary} (${new Date().toLocaleString()})` }
                 ]
             };
 
@@ -2773,6 +3381,7 @@
             localStorage.setItem('mtgTradeRequests_v2', JSON.stringify(tradeRequests));
             textarea.value = '';
             offerInput.value = '';
+            resetOfferBuilderState();
             renderRequestList(cardId, ownerId, false);
             renderTradeNotifications();
             renderNotificationBadge();
@@ -2783,29 +3392,299 @@
             const requests = tradeRequests[cardId] || [];
             const request = requests.find(r => r.requestId === requestId);
             if (!request) return;
+
+            if (request.status === 'countered' && request.requesterId === currentUser.id) {
+                if (action === 'accept') {
+                    acceptCounterOffer(cardId, requestId);
+                    return;
+                }
+                if (action === 'decline') {
+                    declineCounterOffer(cardId, requestId);
+                    return;
+                }
+                if (action === 'counter') {
+                    openCounterOfferModal(cardId, requestId);
+                    return;
+                }
+            }
+
             if (action === 'accept') {
                 request.status = 'accepted';
                 request.updatedAt = new Date().toISOString();
+                request.activeNegotiationState = 'accepted';
+                request.turnOwnerId = request.requesterId;
                 request.history.push({ when: request.updatedAt, actor: currentUser.username || 'Owner', note: `${getOwnerDisplayName(request.ownerId)} accepted the request.` });
                 request.requesterSeen = false;
             } else if (action === 'decline') {
                 request.status = 'declined';
                 request.updatedAt = new Date().toISOString();
+                request.activeNegotiationState = 'declined';
+                request.turnOwnerId = request.requesterId;
                 request.history.push({ when: request.updatedAt, actor: currentUser.username || 'Owner', note: `${getOwnerDisplayName(request.ownerId)} declined the request.` });
                 request.requesterSeen = false;
             } else if (action === 'counter') {
-                const counterNote = prompt('Enter your counter-offer note:');
-                if (!counterNote) return;
-                request.status = 'countered';
-                request.counterMessage = counterNote;
-                request.updatedAt = new Date().toISOString();
-                request.history.push({ when: request.updatedAt, actor: currentUser.username || 'Owner', note: `${getOwnerDisplayName(request.ownerId)} countered: ${counterNote}` });
-                request.requesterSeen = false;
+                openCounterOfferModal(cardId, requestId);
+                return;
             }
             localStorage.setItem('mtgTradeRequests_v2', JSON.stringify(tradeRequests));
             renderRequestList(cardId, request.ownerId, true);
             renderCollectionTable();
             renderNotificationBadge();
+        }
+
+        function acceptCounterOffer(cardId, requestId) {
+            const request = (tradeRequests[cardId] || []).find(r => r.requestId === requestId);
+            if (!request) return;
+            request.status = 'accepted';
+            request.updatedAt = new Date().toISOString();
+            request.activeNegotiationState = 'accepted';
+            request.turnOwnerId = null;
+            request.history.push({
+                when: request.updatedAt,
+                actor: currentUser.username || 'Requester',
+                note: `${currentUser.displayName || currentUser.username || 'Requester'} accepted the counter-offer: ${request.latestCounterSummary || request.counterMessage || request.offerDetails}`
+            });
+            request.requesterSeen = false;
+            request.ownerSeen = false;
+            localStorage.setItem('mtgTradeRequests_v2', JSON.stringify(tradeRequests));
+            renderTradeNotifications();
+            renderNotificationBadge();
+            renderRequestList(cardId, request.ownerId, false);
+        }
+
+        function declineCounterOffer(cardId, requestId) {
+            const request = (tradeRequests[cardId] || []).find(r => r.requestId === requestId);
+            if (!request) return;
+            request.status = 'declined';
+            request.updatedAt = new Date().toISOString();
+            request.activeNegotiationState = 'declined';
+            request.turnOwnerId = null;
+            request.history.push({
+                when: request.updatedAt,
+                actor: currentUser.username || 'Requester',
+                note: `${currentUser.displayName || currentUser.username || 'Requester'} declined the counter-offer: ${request.latestCounterSummary || request.counterMessage || request.offerDetails}`
+            });
+            request.requesterSeen = false;
+            request.ownerSeen = false;
+            localStorage.setItem('mtgTradeRequests_v2', JSON.stringify(tradeRequests));
+            renderTradeNotifications();
+            renderNotificationBadge();
+            renderRequestList(cardId, request.ownerId, false);
+        }
+
+        function closeCounterOfferModal() {
+            const modal = document.getElementById('counterOfferModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function closeCounterOfferModalOnBackdrop(event) {
+            if (event.target.id === 'counterOfferModal') closeCounterOfferModal();
+        }
+
+        function renderCounterThread(request) {
+            const threadEl = document.getElementById('counterThreadHistory');
+            if (!threadEl || !request) return;
+            const comments = Array.isArray(request.comments) ? request.comments : [];
+            if (!comments.length) {
+                threadEl.innerHTML = '<div style="color:#888; font-size:12px;">No negotiation messages yet.</div>';
+                return;
+            }
+            threadEl.innerHTML = comments.map(comment => {
+                const author = comment.username || comment.author || 'User';
+                const stamp = comment.createdAt ? new Date(comment.createdAt).toLocaleString() : 'Just now';
+                return `<div style="padding: 8px 10px; border-radius: 8px; background: #202020; border: 1px solid #333; color: #ddd; font-size: 12px; line-height: 1.5;"><div style="color:#ff9e3b; font-weight: bold; margin-bottom: 4px;">[${escapeHtml(author)}] (${escapeHtml(stamp)}):</div><div>${escapeHtml(comment.message || '')}</div></div>`;
+            }).join('');
+        }
+
+        function openCounterOfferModal(cardId, requestId) {
+            const request = (tradeRequests[cardId] || []).find(r => r.requestId === requestId);
+            if (!request) return;
+
+            const modal = document.getElementById('counterOfferModal');
+            const title = document.getElementById('counterOfferModalTitle');
+            const originalContent = document.getElementById('counterOfferOriginalContent');
+            const noteField = document.getElementById('counterOfferNote');
+            const modalCardName = cardMetadataCache[cardId]?.name || 'Card';
+
+            modal.dataset.requestId = requestId;
+            modal.dataset.cardId = cardId;
+            title.textContent = `Counter Offer for ${modalCardName}`;
+            originalContent.innerHTML = `
+                <div><strong>Original Offer:</strong> ${escapeHtml(request.originalOfferSummary || request.offerDetails || 'No original terms recorded')}</div>
+                ${request.latestCounterSummary ? `<div><strong>Latest Counter:</strong> ${escapeHtml(request.latestCounterSummary)}</div>` : ''}
+            `;
+
+            const activePayload = request.latestCounterPayload || request.activeProposal || {
+                offerType: request.offerType || 'TRADE',
+                cashAmount: Number(request.cashAmount || 0),
+                offeredCards: Array.isArray(request.offeredCards) ? request.offeredCards : [],
+                offeredItems: Array.isArray(request.offeredItems) ? request.offeredItems : [],
+                summary: request.offerDetails || 'No additional terms'
+            };
+            const clonedState = buildOfferItemsFromPayload(activePayload);
+            setOfferBuilderState(clonedState);
+            renderCounterOfferBuilder();
+            renderCounterThread(request);
+            noteField.value = request.counterMessage || '';
+            modal.style.display = 'flex';
+        }
+
+        function sendCounterOffer() {
+            const modal = document.getElementById('counterOfferModal');
+            if (!modal) return;
+
+            const requestId = modal.dataset.requestId;
+            const cardId = modal.dataset.cardId || Object.keys(tradeRequests).find(id => (tradeRequests[id] || []).some(r => r.requestId === requestId));
+            if (!cardId || !requestId) return;
+
+            const request = (tradeRequests[cardId] || []).find(r => r.requestId === requestId);
+            if (!request) return;
+
+            const payload = buildStructuredOfferPayload();
+            const note = document.getElementById('counterOfferNote').value.trim();
+
+            if (!payload.offeredItems.length && Number(payload.cashAmount || 0) <= 0) {
+                alert('Please add at least one cash amount or card item to your counter offer.');
+                return;
+            }
+
+            const counterSummary = payload.summary || buildOfferSummaryText(payload.offeredItems);
+            request.status = 'countered';
+            request.counterMessage = note || counterSummary;
+            request.counterOfferPayload = payload;
+            request.latestCounterSummary = counterSummary;
+            request.latestCounterPayload = payload;
+            request.activeProposal = payload;
+            request.activeNegotiationState = 'countered';
+            request.turnOwnerId = request.requesterId;
+            request.updatedAt = new Date().toISOString();
+            request.comments = Array.isArray(request.comments) ? request.comments : [];
+            if (note) {
+                request.comments.push({
+                    username: currentUser.displayName || currentUser.username || 'User',
+                    userId: currentUser.id,
+                    createdAt: new Date().toISOString(),
+                    message: note
+                });
+            }
+            request.history.push({
+                when: request.updatedAt,
+                actor: currentUser.username || 'User',
+                note: `${currentUser.displayName || currentUser.username || 'User'} submitted a counter-offer: ${counterSummary}`
+            });
+            request.requesterSeen = false;
+            request.ownerSeen = false;
+
+            localStorage.setItem('mtgTradeRequests_v2', JSON.stringify(tradeRequests));
+            closeCounterOfferModal();
+            renderTradeNotifications();
+            renderNotificationBadge();
+            renderRequestList(cardId, request.ownerId, false);
+            alert('Counter offer sent.');
+        }
+
+        function closeRatingReviewModal() {
+            const modal = document.getElementById('ratingReviewModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function closeRatingReviewModalOnBackdrop(event) {
+            if (event.target.id === 'ratingReviewModal') closeRatingReviewModal();
+        }
+
+        function openRatingReviewModal(request, ratedUserId) {
+            const modal = document.getElementById('ratingReviewModal');
+            if (!modal || !request || !ratedUserId) return;
+            modal.dataset.tradeId = request.requestId;
+            modal.dataset.ratedUserId = ratedUserId;
+            const ratedName = getOwnerDisplayName(ratedUserId) || 'this user';
+            document.getElementById('ratingReviewModalTitle').textContent = `Rate ${ratedName}`;
+            document.getElementById('ratingReviewText').value = '';
+            setSelectedStar(0);
+            modal.style.display = 'flex';
+        }
+
+        function setSelectedStar(score) {
+            const starButtons = document.querySelectorAll('.star-rating-btn');
+            starButtons.forEach(button => {
+                const isActive = Number(button.dataset.star) <= Number(score || 0);
+                button.style.opacity = isActive ? '1' : '0.35';
+                button.style.filter = isActive ? 'drop-shadow(0 0 6px rgba(255,158,59,0.8))' : 'none';
+            });
+            const modal = document.getElementById('ratingReviewModal');
+            if (!modal) return;
+            modal.dataset.selectedScore = String(score || 0);
+        }
+
+        document.addEventListener('click', function(event) {
+            const button = event.target.closest('.star-rating-btn');
+            if (!button) return;
+            const score = Number(button.dataset.star || 0);
+            setSelectedStar(score);
+        });
+
+        function getUserRatingsStore() {
+            try {
+                return JSON.parse(localStorage.getItem('UserRatings')) || [];
+            } catch (error) {
+                return [];
+            }
+        }
+
+        function saveUserRatingsStore(ratings) {
+            localStorage.setItem('UserRatings', JSON.stringify(ratings));
+        }
+
+        function getUserRatingSummary(userId) {
+            const ratings = getUserRatingsStore().filter(r => r.ratedUserId === userId);
+            if (!ratings.length) {
+                return { average: 0, count: 0, label: 'No reviews yet' };
+            }
+            const total = ratings.reduce((sum, item) => sum + Number(item.score || 0), 0);
+            const avg = Number((total / ratings.length).toFixed(1));
+            return { average: avg, count: ratings.length, label: `★ ${avg} (${ratings.length} trades)` };
+        }
+
+        function getUserRatingBadge(userId, compact = false) {
+            const summary = getUserRatingSummary(userId);
+            if (!summary.count) {
+                return compact ? '★ New' : '★ New trader';
+            }
+            return compact ? `★ ${summary.average} (${summary.count})` : `★ ${summary.average} (${summary.count} trades)`;
+        }
+
+        function maybeTriggerRatingModalForTrade(request) {
+            if (!request || !currentUser) return;
+            const ratedUserId = request.requesterId === currentUser.id ? request.ownerId : request.requesterId;
+            const existing = getUserRatingsStore().find(r => r.tradeId === request.requestId && r.raterUserId === currentUser.id && r.ratedUserId === ratedUserId);
+            if (existing) return;
+            openRatingReviewModal(request, ratedUserId);
+        }
+
+        function submitUserRating() {
+            const modal = document.getElementById('ratingReviewModal');
+            if (!modal) return;
+            const tradeId = modal.dataset.tradeId;
+            const ratedUserId = modal.dataset.ratedUserId;
+            const score = Number(modal.dataset.selectedScore || 0);
+            const reviewText = document.getElementById('ratingReviewText').value.trim();
+            if (!tradeId || !ratedUserId || !score || score < 1 || score > 5) {
+                alert('Please select a rating between 1 and 5 stars.');
+                return;
+            }
+            const ratings = getUserRatingsStore();
+            ratings.push({
+                raterUserId: currentUser.id,
+                ratedUserId: ratedUserId,
+                tradeId: tradeId,
+                score: score,
+                reviewText: reviewText,
+                createdAt: new Date().toISOString()
+            });
+            saveUserRatingsStore(ratings);
+            closeRatingReviewModal();
+            renderTradeNotifications();
+            renderBrowseMarketplacePanel();
         }
 
         function completeTrade(cardId, requestId) {
@@ -2845,6 +3724,18 @@
             alert('Trade completed and card added to your binder.');
         }
 
+        function setTradeHubTab(tab) {
+            if (!['my-listings', 'offers', 'browse'].includes(tab)) return;
+            currentTradeHubTab = tab;
+            if (tab === 'offers') {
+                currentTradeOffersSection = 'made';
+                currentTradeOffersTab = 'open';
+            }
+            renderTradeNotifications();
+            const buttons = document.querySelectorAll('[data-trade-hub-tab]');
+            buttons.forEach(btn => btn.classList.toggle('active', btn.dataset.tradeHubTab === tab));
+        }
+
         function setActiveTradeOffersSection(section) {
             if (section !== 'made' && section !== 'received') return;
             currentTradeOffersSection = section;
@@ -2858,9 +3749,111 @@
             renderTradeNotifications();
         }
 
+        function renderMyListingsPanel() {
+            const currentUserId = currentUser ? currentUser.id : null;
+            if (!currentUserId) {
+                return '<div class="offer-card" style="color:#999;">Sign in to create marketplace listings for your binder.</div>';
+            }
+
+            const userListings = tradeListings.filter(listing => listing.ownerId === currentUserId);
+            if (userListings.length === 0) {
+                return `
+                    <div class="offer-card" style="color:#999;">
+                        You have not listed any cards yet. Open a card’s actions menu and choose “List on Marketplace” to add one.
+                    </div>
+                `;
+            }
+
+            return userListings.slice().reverse().map(listing => {
+                const cardMeta = cardMetadataCache[listing.cardId] || { name: 'Unknown Card', set: '???' };
+                const qty = (collectionData[listing.cardId] && collectionData[listing.cardId][currentUserId]) || 0;
+                const imageUrl = getCardPreviewImage(cardMeta, 0) || cardMeta.art_crop || cardMeta.image_uris?.border_crop || cardMeta.image_uris?.large || cardMeta.image_uris?.normal || cardMeta.image_uris?.png || '';
+                return `
+                    <div class="offer-card trade-listing-card">
+                        <div class="trade-listing-visual">
+                            <img src="${imageUrl}" alt="${escapeHtml(cardMeta.name)}" onerror="this.style.display='none'">
+                        </div>
+                        <div>
+                            <div class="offer-card-header">
+                                <div style="color:#fff; font-size:15px;"><strong>${escapeHtml(cardMeta.name)}</strong> — ${escapeHtml(cardMeta.set || 'Unknown Set')}</div>
+                                <div class="offer-card-status" style="color:#7fed7f;">Live</div>
+                            </div>
+                            <div class="offer-card-body">
+                                <div><strong>Condition:</strong> ${escapeHtml(listing.condition || 'NM')}</div>
+                                <div><strong>Price / Trade:</strong> ${escapeHtml(listing.price || 'No offer set')}</div>
+                                <div><strong>Available Copies:</strong> ${qty}</div>
+                                ${listing.notes ? `<div style="margin-top:8px;">${escapeHtml(listing.notes)}</div>` : ''}
+                            </div>
+                            <div class="offer-card-actions">
+                                <button class="styled-btn" onclick="openTradeListingModal('${listing.cardId}', true)">Edit Listing</button>
+                                <button class="styled-btn secondary" onclick="removeTradeListing('${listing.id}')">Remove</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderBrowseMarketplacePanel() {
+            if (!tradeListings || tradeListings.length === 0) {
+                return '<div class="offer-card" style="color:#999;">There are no active marketplace listings right now.</div>';
+            }
+
+            const visibleListings = tradeListings.filter(listing => listing.ownerId !== currentUser.id);
+            if (visibleListings.length === 0) {
+                return '<div class="offer-card" style="color:#999;">No other users are currently selling or trading cards in the marketplace.</div>';
+            }
+
+            return visibleListings.slice().reverse().map(listing => {
+                const cardMeta = cardMetadataCache[listing.cardId] || { name: 'Unknown Card', set: '???' };
+                const sellerDisplay = listing.ownerName || 'Trader';
+                const imageUrl = getCardPreviewImage(cardMeta, 0) || cardMeta.art_crop || cardMeta.image_uris?.border_crop || cardMeta.image_uris?.large || cardMeta.image_uris?.normal || cardMeta.image_uris?.png || '';
+                return `
+                    <div class="offer-card trade-listing-card">
+                        <div class="trade-listing-visual">
+                            <img src="${imageUrl}" alt="${escapeHtml(cardMeta.name)}" onerror="this.style.display='none'">
+                        </div>
+                        <div>
+                            <div class="offer-card-header">
+                                <div style="color:#fff; font-size:15px;"><strong>${escapeHtml(cardMeta.name)}</strong> — ${escapeHtml(cardMeta.set || 'Unknown Set')}</div>
+                                <div class="offer-card-status" style="color:#89cff0;">${escapeHtml(listing.condition || 'NM')}</div>
+                            </div>
+                            <div class="offer-card-body">
+                                <div><strong>Seller:</strong> ${escapeHtml(sellerDisplay)}</div>
+                                <div><strong>Price / Trade:</strong> ${escapeHtml(listing.price || 'No offer set')}</div>
+                                ${listing.notes ? `<div style="margin-top:8px;">${escapeHtml(listing.notes)}</div>` : ''}
+                            </div>
+                            <div class="offer-card-actions">
+                                <button class="styled-btn" onclick="openCardCommentModal('${listing.cardId}', '${listing.ownerId}')">Send Offer</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
         function renderTradeNotifications() {
             const panel = document.getElementById('offersPanel') || document.getElementById('tradeNotificationsPanel');
             if (!panel) return;
+
+            if (currentTradeHubTab === 'my-listings') {
+                panel.innerHTML = `
+                    <div class="offer-list-container">
+                        ${renderMyListingsPanel()}
+                    </div>
+                `;
+                return;
+            }
+
+            if (currentTradeHubTab === 'browse') {
+                panel.innerHTML = `
+                    <div class="offer-list-container">
+                        ${renderBrowseMarketplacePanel()}
+                    </div>
+                `;
+                return;
+            }
+
             const allRequests = [];
             Object.keys(tradeRequests).forEach(cardId => {
                 (tradeRequests[cardId] || []).forEach(request => {
@@ -2934,11 +3927,19 @@
                     <button class="styled-btn" onclick="respondToTradeRequest('${request.cardId}', '${request.requestId}', 'counter')">Counter</button>
                 `;
             }
-            const offerLine = request.offerDetails ? `<div style="margin-top:8px;color:#ffd166;"><strong>Offer:</strong> ${escapeHtml(request.offerDetails)}</div>` : '';
-            const counterLine = request.counterMessage ? `<div style="margin-top:8px;color:#ccc;"><strong>Counter:</strong> ${escapeHtml(request.counterMessage)}</div>` : '';
+            const originalOfferLine = request.originalOfferSummary || request.offerDetails ? `<div style="margin-top:8px;color:#ffd166;"><strong>Original Offer:</strong> ${escapeHtml(request.originalOfferSummary || request.offerDetails)}</div>` : '';
+            const counterLine = request.latestCounterSummary || request.counterMessage ? `<div style="margin-top:8px;color:#ccc;"><strong>Latest Counter:</strong> ${escapeHtml(request.latestCounterSummary || request.counterMessage)}</div>` : '';
             const historyHtml = request.history && request.history.length > 0
                 ? `<div style="margin-top:10px; color:#999; font-size:12px;"><strong>History</strong><br>${request.history.map(event => `${escapeHtml(event.note)} <span style='color:#777;'>(${new Date(event.when).toLocaleString()})</span>`).join('<br>')}</div>`
                 : '';
+
+            if (request.status === 'countered' && request.requesterId === currentUser.id) {
+                actionHtml = `
+                    <button class="styled-btn" onclick="acceptCounterOffer('${request.cardId}', '${request.requestId}')">Accept Counter</button>
+                    <button class="styled-btn secondary" onclick="declineCounterOffer('${request.cardId}', '${request.requestId}')">Decline Counter</button>
+                    <button class="styled-btn" onclick="openCounterOfferModal('${request.cardId}', '${request.requestId}')">Counter Again</button>
+                `;
+            }
 
             return `
                 <div class="offer-card">
@@ -2947,7 +3948,7 @@
                         <div class="offer-card-status" style="color:${statusColor};">${statusText}</div>
                     </div>
                     <div class="offer-card-body">${escapeHtml(request.message)}</div>
-                    ${offerLine}
+                    ${originalOfferLine}
                     ${counterLine}
                     ${historyHtml}
                     <div class="offer-card-actions">${actionHtml}</div>
@@ -3073,17 +4074,102 @@
         function updateRequestOfferPlaceholder() {
             const type = document.getElementById('requestTypeSelect').value;
             const label = document.getElementById('requestOfferLabel');
-            const input = document.getElementById('requestOfferInput');
-            if (!label || !input) return;
+            const builder = document.getElementById('requestOfferBuilder');
+            if (!label || !builder) return;
+
             if (type === 'buy') {
-                label.textContent = 'Buy Offer Amount';
-                input.placeholder = 'Enter a numeric amount like 12.50';
-                input.type = 'text';
+                label.textContent = 'Buy Offer';
+                setOfferBuilderState([createOfferBuilderItem('cash')]);
             } else {
-                label.textContent = 'Cards Offered for Trade';
-                input.placeholder = 'List one or more cards, separated by commas';
-                input.type = 'text';
+                label.textContent = 'Offer Builder';
+                setOfferBuilderState(getOfferBuilderState().length ? getOfferBuilderState() : [createOfferBuilderItem('cash')]);
             }
+            renderOfferBuilder();
+        }
+
+        function openTradeListingModal(cardId, isEdit = false) {
+            const modal = document.getElementById('tradeListingModal');
+            const title = document.getElementById('tradeListingModalTitle');
+            const hidden = document.getElementById('tradeListingCardId');
+            const condition = document.getElementById('tradeListingCondition');
+            const price = document.getElementById('tradeListingPrice');
+            const notes = document.getElementById('tradeListingNotes');
+            const publishButton = modal.querySelector('button.styled-btn');
+            const cardMeta = cardMetadataCache[cardId] || { name: 'Unknown Card' };
+
+            hidden.value = cardId;
+            title.textContent = isEdit ? `Edit ${cardMeta.name} Listing` : `List ${cardMeta.name} on Marketplace`;
+            publishButton.textContent = isEdit ? 'Save Listing' : 'Publish Listing';
+
+            const existing = tradeListings.find(item => item.ownerId === currentUser.id && item.cardId === cardId);
+            if (existing) {
+                condition.value = existing.condition || 'NM';
+                price.value = existing.price || '';
+                notes.value = existing.notes || '';
+            } else {
+                condition.value = 'NM';
+                price.value = '';
+                notes.value = '';
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        function closeTradeListingModal() {
+            const modal = document.getElementById('tradeListingModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function closeTradeListingModalOnBackdrop(event) {
+            if (event.target.id === 'tradeListingModal') closeTradeListingModal();
+        }
+
+        function publishTradeListing() {
+            const cardId = document.getElementById('tradeListingCardId').value;
+            const condition = document.getElementById('tradeListingCondition').value;
+            const price = document.getElementById('tradeListingPrice').value.trim();
+            const notes = document.getElementById('tradeListingNotes').value.trim();
+
+            if (!cardId || !currentUser) {
+                alert('Please sign in before listing a card.');
+                return;
+            }
+
+            const userQty = (collectionData[cardId] && collectionData[cardId][currentUser.id]) || 0;
+            if (userQty <= 0) {
+                alert('You must own at least one copy of the card before listing it.');
+                return;
+            }
+
+            const trimmedPrice = price || 'Trade offer';
+            const existingIndex = tradeListings.findIndex(item => item.ownerId === currentUser.id && item.cardId === cardId);
+            const listing = {
+                id: existingIndex >= 0 ? tradeListings[existingIndex].id : 'listing_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+                ownerId: currentUser.id,
+                ownerName: currentUser.displayName || currentUser.username || 'Me',
+                cardId: cardId,
+                condition: condition,
+                price: trimmedPrice,
+                notes: notes,
+                createdAt: new Date().toISOString()
+            };
+
+            if (existingIndex >= 0) {
+                tradeListings[existingIndex] = listing;
+            } else {
+                tradeListings.push(listing);
+            }
+
+            localStorage.setItem('mtgTradeListings_v2', JSON.stringify(tradeListings));
+            closeTradeListingModal();
+            renderTradeNotifications();
+            alert('Your card listing has been updated in the Trade Hub.');
+        }
+
+        function removeTradeListing(listingId) {
+            tradeListings = tradeListings.filter(item => item.id !== listingId);
+            localStorage.setItem('mtgTradeListings_v2', JSON.stringify(tradeListings));
+            renderTradeNotifications();
         }
 
         function escapeHtml(text) {
