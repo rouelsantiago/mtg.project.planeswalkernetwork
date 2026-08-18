@@ -90,6 +90,27 @@
             position: relative;
             display: inline-block;
         }
+        .profile-user-summary {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .profile-rating-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 26px;
+            padding: 4px 10px;
+            background: rgba(255, 158, 59, 0.12);
+            border: 1px solid rgba(255, 158, 59, 0.45);
+            border-radius: 999px;
+            color: #ffb266;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1;
+            white-space: nowrap;
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.12);
+        }
         .profile-btn {
             background-color: #007acc;
             color: white;
@@ -1326,9 +1347,12 @@
         </div>
 
         <div class="profile-dropdown-container">
-            <button class="profile-btn" onclick="toggleNavDropdown(event)">
-                👤 <span id="navProfileUsername">My Profile</span> <span style="font-size: 10px;">▼</span>
-            </button>
+            <div class="profile-user-summary">
+                <span id="navProfileRatingBadge" class="profile-rating-pill">★ New</span>
+                <button class="profile-btn" onclick="toggleNavDropdown(event)">
+                    👤 <span id="navProfileUsername">My Profile</span> <span style="font-size: 10px;">▼</span>
+                </button>
+            </div>
             <div id="navDropdownMenu" class="nav-dropdown-content">
                 <div class="nav-dropdown-item" onclick="navigateToView('my-binder')">📕 My Binder</div>
                 <div class="nav-dropdown-item" onclick="navigateToView('offers')">💬 Trade Hub <span id="offersMenuBadge" class="offer-menu-badge" style="display:none;">0</span></div>
@@ -3978,9 +4002,16 @@
 
         function updateCurrentUserProfileDisplay() {
             const profileLabel = document.getElementById('navProfileUsername');
-            if (!profileLabel || !currentUser) return;
-            const displayName = currentUser.displayName || currentUser.username || 'My Profile';
-            profileLabel.innerHTML = `${escapeHtml(displayName)} ${renderUserRatingBadgeHtml(currentUser.id, true, true)}`;
+            const badgeEl = document.getElementById('navProfileRatingBadge');
+            if (!profileLabel) return;
+            const displayName = currentUser ? (currentUser.displayName || currentUser.username || 'My Profile') : 'My Profile';
+            profileLabel.textContent = displayName;
+
+            if (badgeEl) {
+                const summary = getUserRatingSummary(currentUser ? currentUser.id : '');
+                const label = summary.count ? `★ ${summary.average.toFixed(1)} (${summary.count})` : '★ New';
+                badgeEl.textContent = label;
+            }
         }
 
         function triggerRatingForAcceptedTrade(request) {
