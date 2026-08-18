@@ -3372,6 +3372,8 @@
                 latestCounterPayload: null,
                 counterOfferPayload: null,
                 counterMessage: '',
+                latestCounterByUserId: null,
+                lastUpdatedBy: currentUser.id,
                 message: message,
                 status: 'pending',
                 activeNegotiationState: 'initial',
@@ -3401,7 +3403,10 @@
             const request = requests.find(r => r.requestId === requestId);
             if (!request) return;
 
-            if (request.status === 'countered' && request.requesterId === currentUser.id) {
+            const recipientId = getTradeActionRecipientId(request);
+            const isRecipientTurn = !!currentUser && recipientId === currentUser.id;
+
+            if (request.status === 'countered' && isRecipientTurn) {
                 if (action === 'accept') {
                     acceptCounterOffer(cardId, requestId);
                     return;
@@ -3420,14 +3425,16 @@
                 request.status = 'accepted';
                 request.updatedAt = new Date().toISOString();
                 request.activeNegotiationState = 'accepted';
-                request.turnOwnerId = request.requesterId;
+                request.turnOwnerId = null;
+                request.lastUpdatedBy = currentUser.id;
                 request.history.push({ when: request.updatedAt, actor: currentUser.username || 'Owner', note: `${getOwnerDisplayName(request.ownerId)} accepted the request.` });
                 request.requesterSeen = false;
             } else if (action === 'decline') {
                 request.status = 'declined';
                 request.updatedAt = new Date().toISOString();
                 request.activeNegotiationState = 'declined';
-                request.turnOwnerId = request.requesterId;
+                request.turnOwnerId = null;
+                request.lastUpdatedBy = currentUser.id;
                 request.history.push({ when: request.updatedAt, actor: currentUser.username || 'Owner', note: `${getOwnerDisplayName(request.ownerId)} declined the request.` });
                 request.requesterSeen = false;
             } else if (action === 'counter') {
@@ -3447,6 +3454,8 @@
             request.updatedAt = new Date().toISOString();
             request.activeNegotiationState = 'accepted';
             request.turnOwnerId = null;
+            request.lastUpdatedBy = currentUser.id;
+            request.latestCounterByUserId = currentUser.id;
             request.history.push({
                 when: request.updatedAt,
                 actor: currentUser.username || 'Requester',
@@ -3467,6 +3476,8 @@
             request.updatedAt = new Date().toISOString();
             request.activeNegotiationState = 'declined';
             request.turnOwnerId = null;
+            request.lastUpdatedBy = currentUser.id;
+            request.latestCounterByUserId = currentUser.id;
             request.history.push({
                 when: request.updatedAt,
                 actor: currentUser.username || 'Requester',
@@ -3557,6 +3568,7 @@
             }
 
             const counterSummary = payload.summary || buildOfferSummaryText(payload.offeredItems);
+            const senderIsOwner = currentUser && currentUser.id === request.ownerId;
             request.status = 'countered';
             request.counterMessage = note || counterSummary;
             request.counterOfferPayload = payload;
@@ -3564,7 +3576,9 @@
             request.latestCounterPayload = payload;
             request.activeProposal = payload;
             request.activeNegotiationState = 'countered';
-            request.turnOwnerId = request.requesterId;
+            request.latestCounterByUserId = currentUser.id;
+            request.lastUpdatedBy = currentUser.id;
+            request.turnOwnerId = senderIsOwner ? request.requesterId : request.ownerId;
             request.updatedAt = new Date().toISOString();
             request.comments = Array.isArray(request.comments) ? request.comments : [];
             if (note) {
@@ -3840,6 +3854,49 @@
             }).join('');
         }
 
+        function getTradeNegotiationStatus(request) {
+            const value = String(request && request.status ? request.status : 'pending').toLowerCase();
+            if (value === 'open') return 'pending';
+            return value;
+        }
+
+        function getTradeActionRecipientId(request) {
+            if (!request) return null;
+            const status = getTradeNegotiationStatus(request);
+            if (status === 'pending') return request.ownerId;
+            if (status === 'countered') {
+                const latestUpdater = request.lastUpdatedBy || request.latestCounterByUserId || request.requesterId || request.ownerId;
+                return latestUpdater === request.ownerId ? request.requesterId : request.ownerId;
+            }
+            return null;
+        }
+
+        function isCurrentUserTurnToAct(request) {
+            if (!currentUser || !request) return false;
+            const recipientId = getTradeActionRecipientId(request);
+            return !!recipientId && recipientId === currentUser.id;
+        }
+
+        function getTradeTurnBadge(request) {
+            const normalized = getTradeNegotiationStatus(request);
+            if (!['pending', 'countered'].includes(normalized)) {
+                return { text: '', style: '' };
+            }
+            if (isCurrentUserTurnToAct(request)) {
+                const label = normalized === 'countered' ? 'Action Required (Counter Received)' : 'Action Required (New Offer)';
+                return {
+                    text: label,
+                    style: 'background: rgba(255,158,59,0.16); color: #ffb266; border: 1px solid rgba(255,158,59,0.45);'
+                };
+            }
+            const otherUserId = request.requesterId === currentUser.id ? request.ownerId : request.requesterId;
+            const otherUserName = otherUserId === request.ownerId ? getOwnerDisplayName(request.ownerId) : (request.requesterName || 'Other user');
+            return {
+                text: `Awaiting Response from ${otherUserName}`,
+                style: 'background: rgba(255,255,255,0.04); color: #a4a4a4; border: 1px solid rgba(255,255,255,0.12);'
+            };
+        }
+
         function renderTradeNotifications() {
             const panel = document.getElementById('offersPanel') || document.getElementById('tradeNotificationsPanel');
             if (!panel) return;
@@ -3915,7 +3972,8 @@
         function renderOfferRequestCard(request, isMadeSection) {
             const cardMeta = cardMetadataCache[request.cardId] || { name: 'Unknown Card' };
             const peerName = isMadeSection ? getOwnerDisplayName(request.ownerId) : request.requesterName;
-            const statusText = request.status.charAt(0).toUpperCase() + request.status.slice(1);
+            const normalizedStatus = getTradeNegotiationStatus(request);
+            const statusText = normalizedStatus.charAt(0).toUpperCase() + normalizedStatus.slice(1);
             const statusColors = {
                 pending: '#89cff0',
                 countered: '#f1c232',
@@ -3923,31 +3981,34 @@
                 declined: '#ff6b6b',
                 completed: '#b5b5b5'
             };
-            const statusColor = statusColors[request.status] || '#ccc';
+            const statusColor = statusColors[normalizedStatus] || '#ccc';
             let actionHtml = '';
-            if (request.status === 'accepted' && request.requesterId === currentUser.id) {
+            const isCurrentUsersTurn = isCurrentUserTurnToAct(request);
+
+            if (normalizedStatus === 'accepted' && request.requesterId === currentUser.id) {
                 actionHtml = `<button class="styled-btn" onclick="completeTrade('${request.cardId}', '${request.requestId}')">Complete Trade</button>`;
             }
-            if (request.status === 'pending' && request.ownerId === currentUser.id) {
-                actionHtml = `
-                    <button class="styled-btn" onclick="respondToTradeRequest('${request.cardId}', '${request.requestId}', 'accept')">Accept</button>
-                    <button class="styled-btn secondary" onclick="respondToTradeRequest('${request.cardId}', '${request.requestId}', 'decline')">Decline</button>
-                    <button class="styled-btn" onclick="respondToTradeRequest('${request.cardId}', '${request.requestId}', 'counter')">Counter</button>
-                `;
+            if (['pending', 'countered'].includes(normalizedStatus) && isCurrentUsersTurn) {
+                if (normalizedStatus === 'pending') {
+                    actionHtml = `
+                        <button class="styled-btn" onclick="respondToTradeRequest('${request.cardId}', '${request.requestId}', 'accept')">Accept</button>
+                        <button class="styled-btn secondary" onclick="respondToTradeRequest('${request.cardId}', '${request.requestId}', 'decline')">Decline</button>
+                        <button class="styled-btn" onclick="respondToTradeRequest('${request.cardId}', '${request.requestId}', 'counter')">Counter</button>
+                    `;
+                } else {
+                    actionHtml = `
+                        <button class="styled-btn" onclick="acceptCounterOffer('${request.cardId}', '${request.requestId}')">Accept Counter</button>
+                        <button class="styled-btn secondary" onclick="declineCounterOffer('${request.cardId}', '${request.requestId}')">Decline Counter</button>
+                        <button class="styled-btn" onclick="openCounterOfferModal('${request.cardId}', '${request.requestId}')">Counter Again</button>
+                    `;
+                }
             }
             const originalOfferLine = request.originalOfferSummary || request.offerDetails ? `<div style="margin-top:8px;color:#ffd166;"><strong>Original Offer:</strong> ${escapeHtml(request.originalOfferSummary || request.offerDetails)}</div>` : '';
             const counterLine = request.latestCounterSummary || request.counterMessage ? `<div style="margin-top:8px;color:#ccc;"><strong>Latest Counter:</strong> ${escapeHtml(request.latestCounterSummary || request.counterMessage)}</div>` : '';
             const historyHtml = request.history && request.history.length > 0
                 ? `<div style="margin-top:10px; color:#999; font-size:12px;"><strong>History</strong><br>${request.history.map(event => `${escapeHtml(event.note)} <span style='color:#777;'>(${new Date(event.when).toLocaleString()})</span>`).join('<br>')}</div>`
                 : '';
-
-            if (request.status === 'countered' && request.requesterId === currentUser.id) {
-                actionHtml = `
-                    <button class="styled-btn" onclick="acceptCounterOffer('${request.cardId}', '${request.requestId}')">Accept Counter</button>
-                    <button class="styled-btn secondary" onclick="declineCounterOffer('${request.cardId}', '${request.requestId}')">Decline Counter</button>
-                    <button class="styled-btn" onclick="openCounterOfferModal('${request.cardId}', '${request.requestId}')">Counter Again</button>
-                `;
-            }
+            const turnBadge = ['pending', 'countered'].includes(normalizedStatus) ? getTradeTurnBadge(request) : { text: '', style: '' };
 
             return `
                 <div class="offer-card">
@@ -3955,6 +4016,7 @@
                         <div style="color:#fff; font-size:15px;"><strong>${escapeHtml(cardMeta.name)}</strong> — ${escapeHtml(request.type)} ${isMadeSection ? 'to' : 'from'} ${escapeHtml(peerName)}</div>
                         <div class="offer-card-status" style="color:${statusColor};">${statusText}</div>
                     </div>
+                    ${turnBadge.text ? `<div style="margin-top:8px; ${turnBadge.style}; border-radius:999px; padding:5px 10px; font-size:11px; font-weight:bold; display:inline-block;">${escapeHtml(turnBadge.text)}</div>` : ''}
                     <div class="offer-card-body">${escapeHtml(request.message)}</div>
                     ${originalOfferLine}
                     ${counterLine}
