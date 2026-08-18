@@ -110,6 +110,7 @@
             line-height: 1;
             white-space: nowrap;
             box-shadow: 0 0 0 1px rgba(0,0,0,0.12);
+            cursor: pointer;
         }
         .profile-btn {
             background-color: #007acc;
@@ -1348,7 +1349,7 @@
 
         <div class="profile-dropdown-container">
             <div class="profile-user-summary">
-                <span id="navProfileRatingBadge" class="profile-rating-pill">★ New</span>
+                <button id="navProfileRatingBadge" type="button" class="profile-rating-pill" data-user-rating-id="">★ New</button>
                 <button class="profile-btn" onclick="toggleNavDropdown(event)">
                     👤 <span id="navProfileUsername">My Profile</span> <span style="font-size: 10px;">▼</span>
                 </button>
@@ -1847,6 +1848,8 @@
         let currentTradeOffersSection = 'made';
         let currentTradeOffersTab = 'open';
         let currentTradeHubTab = 'my-listings';
+        let currentTradeHistorySort = 'newest';
+        let currentTradeHistorySearch = '';
         
         // Keeps track of the collapsed status of individual category headers
         let collapsedCategoriesTracker = {};
@@ -4008,6 +4011,7 @@
             profileLabel.textContent = displayName;
 
             if (badgeEl) {
+                badgeEl.dataset.userRatingId = currentUser ? (currentUser.id || '') : '';
                 const summary = getUserRatingSummary(currentUser ? currentUser.id : '');
                 const label = summary.count ? `★ ${summary.average.toFixed(1)} (${summary.count})` : '★ New';
                 badgeEl.textContent = label;
@@ -4404,6 +4408,35 @@
             };
         }
 
+        function normalizeTradeHistoryText(value) {
+            return String(value || '').toLowerCase().replace(/[^a-z0-9@._\s-]/g, ' ').replace(/\s+/g, ' ').trim();
+        }
+
+        function matchesTradeHistorySearch(request, query) {
+            if (!request || !query) return true;
+            const cardMeta = cardMetadataCache[request.cardId] || { name: '' };
+            const offeredNames = (Array.isArray(request.offeredItems) ? request.offeredItems : [])
+                .map(item => item && (item.cardName || item.name || item.selectedCard?.name || item.title || ''))
+                .filter(Boolean);
+            const searchText = [
+                cardMeta.name,
+                request.requesterName,
+                request.ownerName,
+                request.requesterEmail,
+                request.ownerEmail,
+                request.buyer_email,
+                request.seller_email,
+                request.buyer_email || request.seller_email,
+                request.counterMessage,
+                request.offerDetails,
+                request.originalOfferSummary,
+                request.latestCounterSummary,
+                request.message,
+                ...offeredNames
+            ].join(' ');
+            return normalizeTradeHistoryText(searchText).includes(normalizeTradeHistoryText(query));
+        }
+
         function renderTradeNotifications() {
             const panel = document.getElementById('offersPanel') || document.getElementById('tradeNotificationsPanel');
             if (!panel) return;
@@ -4437,7 +4470,7 @@
                 ? allRequests.filter(r => r.requesterId === currentUser.id)
                 : allRequests.filter(r => r.ownerId === currentUser.id);
 
-            const filteredRequests = sectionRequests.filter(request => {
+            let filteredRequests = sectionRequests.filter(request => {
                 const normalizedStatus = String(request.status || '').toLowerCase();
                 if (currentTradeOffersTab === 'open') {
                     return normalizedStatus === 'pending' || normalizedStatus === 'countered';
@@ -4454,6 +4487,15 @@
                 return false;
             });
 
+            if (currentTradeOffersTab === 'history') {
+                filteredRequests = filteredRequests.filter(request => matchesTradeHistorySearch(request, currentTradeHistorySearch));
+                filteredRequests.sort((a, b) => {
+                    const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
+                    const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
+                    return currentTradeHistorySort === 'oldest' ? aTime - bTime : bTime - aTime;
+                });
+            }
+
             const topTabHtml = ['made', 'received'].map(section => {
                 const label = section === 'made' ? 'Offers You Made' : 'Offers You Received';
                 const activeClass = currentTradeOffersSection === section ? 'active' : '';
@@ -4466,13 +4508,35 @@
                 return `<button class="offer-subtab-button ${activeClass}" onclick="setActiveTradeOffersTab('${tab}')">${label}</button>`;
             }).join('');
 
+            const historyToolbar = currentTradeOffersTab === 'history'
+                ? `
+                    <div class="trade-history-toolbar" style="display:flex; gap:12px; align-items:center; margin: 14px 0 10px; flex-wrap:wrap;">
+                        <input
+                            type="text"
+                            value="${escapeHtml(currentTradeHistorySearch)}"
+                            placeholder="Search by card name or trader username/email..."
+                            oninput="currentTradeHistorySearch = this.value; renderTradeNotifications();"
+                            style="flex:1; min-width:220px; background:#111; color:#fff; border:1px solid #333; border-radius:8px; padding:10px 12px;"
+                        />
+                        <select
+                            onchange="currentTradeHistorySort = this.value; renderTradeNotifications();"
+                            style="background:#111; color:#fff; border:1px solid #333; border-radius:8px; padding:10px 12px; min-width:190px;"
+                        >
+                            <option value="newest" ${currentTradeHistorySort === 'newest' ? 'selected' : ''}>Newest to Oldest</option>
+                            <option value="oldest" ${currentTradeHistorySort === 'oldest' ? 'selected' : ''}>Oldest to Newest</option>
+                        </select>
+                    </div>
+                `
+                : '';
+
             const requestCards = filteredRequests.length > 0
                 ? filteredRequests.map(request => renderOfferRequestCard(request, currentTradeOffersSection === 'made')).join('')
-                : `<div class="offer-card" style="color:#999;">No ${currentTradeOffersTab} offers in this view.</div>`;
+                : `<div class="offer-card" style="color:#999;">${currentTradeOffersTab === 'history' && currentTradeHistorySearch ? `No trade history found matching '${escapeHtml(currentTradeHistorySearch)}'.` : `No ${currentTradeOffersTab} offers in this view.`}</div>`;
 
             panel.innerHTML = `
                 <div class="offer-tabs">${topTabHtml}</div>
                 <div class="offer-subtabs">${subTabHtml}</div>
+                ${historyToolbar}
                 <div class="offer-list-container">${requestCards}</div>
             `;
         }
