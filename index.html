@@ -3176,7 +3176,15 @@
                     dropdown.innerHTML = '';
                 }
                 setOfferBuilderState(items);
-                renderOfferBuilder();
+
+                // Re-render both builder variants so the selected card remains visible in the
+                // active modal instead of resetting immediately after the autocomplete click.
+                if (document.getElementById('counterOfferBuilder')) {
+                    renderCounterOfferBuilder();
+                }
+                if (document.getElementById('requestOfferBuilder')) {
+                    renderOfferBuilder();
+                }
             } catch (error) {
                 console.warn('Scryfall card fetch failed for trade offers:', error);
             }
