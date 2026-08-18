@@ -1810,7 +1810,7 @@
         const SUPABASE_ANON_KEY = 'sb_publishable_lm6XnUVwctlFW6kZIbQ4sw_90aSMwjU';
         // If true, clear any persisted Supabase auth session and local currentUser on page load.
         // This prevents someone opening a shared link from seeing a previous user's session.
-        const SUPABASE_CLEAR_SESSION_ON_LOAD = true;
+        const SUPABASE_CLEAR_SESSION_ON_LOAD = false;
         let supabaseClient = null;
         function initSupabaseClient() {
             if (SUPABASE_ENABLED && SUPABASE_URL && SUPABASE_ANON_KEY && typeof createClient === 'function') {
