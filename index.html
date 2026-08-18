@@ -2122,6 +2122,50 @@
             }
         }
 
+        async function fetchMarketplaceListingsFromSupabase() {
+            if (!isSupabaseConfigured() || !supabaseClient || !supabaseClient.from) return [];
+            try {
+                const { data, error } = await supabaseClient
+                    .from('marketplace_listings')
+                    .select('*')
+                    .eq('status', 'active');
+                if (error) {
+                    console.warn('Marketplace fetch failed', error);
+                    return [];
+                }
+                if (!Array.isArray(data) || data.length === 0) {
+                    tradeListings = (tradeListings || []).filter(item => (item.status || 'active') === 'active');
+                    localStorage.setItem('mtgTradeListings_v2', JSON.stringify(tradeListings));
+                    return [];
+                }
+                const merged = [...(tradeListings || [])];
+                data.forEach(remoteListing => {
+                    const foundIndex = merged.findIndex(localListing => String(localListing.id) === String(remoteListing.id));
+                    if (foundIndex >= 0) {
+                        merged[foundIndex] = { ...merged[foundIndex], ...remoteListing };
+                    } else {
+                        merged.push({
+                            id: remoteListing.id,
+                            ownerId: remoteListing.user_id || remoteListing.owner_id || remoteListing.ownerId,
+                            ownerName: remoteListing.owner_name || remoteListing.ownerName || 'Trader',
+                            cardId: remoteListing.card_id || remoteListing.cardId,
+                            price: remoteListing.price || 'Trade offer',
+                            condition: remoteListing.condition || 'NM',
+                            notes: remoteListing.notes || '',
+                            status: remoteListing.status || 'active',
+                            createdAt: remoteListing.created_at || remoteListing.createdAt || new Date().toISOString()
+                        });
+                    }
+                });
+                tradeListings = merged.filter(item => !item || (item.status || 'active') === 'active');
+                localStorage.setItem('mtgTradeListings_v2', JSON.stringify(tradeListings));
+                return tradeListings;
+            } catch (e) {
+                console.warn('Marketplace fetch error', e);
+                return [];
+            }
+        }
+
         async function syncTradeListingStatusToSupabase(listingId, status) {
             if (!listingId || !isSupabaseConfigured() || !supabaseClient || !supabaseClient.from) return;
             try {
@@ -2134,6 +2178,34 @@
                 }
             } catch (e) {
                 console.warn('Marketplace delist sync error', e);
+            }
+        }
+
+        async function syncMarketplaceListingToSupabase(listing) {
+            if (!listing || !isSupabaseConfigured() || !supabaseClient || !supabaseClient.from) return null;
+            const payload = {
+                id: listing.id,
+                user_id: listing.ownerId,
+                card_id: listing.cardId,
+                owner_name: listing.ownerName || currentUser?.displayName || currentUser?.username || 'Trader',
+                condition: listing.condition || 'NM',
+                price: listing.price || 'Trade offer',
+                notes: listing.notes || '',
+                status: listing.status || 'active',
+                created_at: listing.createdAt || new Date().toISOString()
+            };
+            try {
+                const { data, error } = await supabaseClient
+                    .from('marketplace_listings')
+                    .upsert(payload, { onConflict: 'id' });
+                if (error) {
+                    console.warn('Marketplace listing sync failed', error);
+                    return null;
+                }
+                return data;
+            } catch (e) {
+                console.warn('Marketplace listing sync error', e);
+                return null;
             }
         }
 
@@ -2862,9 +2934,13 @@
         }
 
         function getOwnerDisplayName(ownerId) {
-            if (ownerId === currentUser.id) return currentUser && (currentUser.displayName || currentUser.username) ? (currentUser.displayName || currentUser.username) : 'Me';
+            if (!ownerId) return 'Trader';
+            if (currentUser && currentUser.id === ownerId) return currentUser.displayName || currentUser.username || 'Me';
             const friend = friendsList.find(f => f.id === ownerId);
-            return friend ? friend.name : ownerId;
+            if (friend) return friend.name || friend.username || friend.email || 'Trader';
+            const localUser = Object.values(users || {}).find(u => u && u.id === ownerId);
+            if (localUser) return localUser.displayName || localUser.username || localUser.email || 'Trader';
+            return ownerId;
         }
 
         function createOfferBuilderItem(kind = 'cash') {
@@ -3377,7 +3453,7 @@
             comments.slice().reverse().forEach(comment => {
                 const item = document.createElement('div');
                 item.className = 'comment-card-item';
-                item.innerHTML = `<div class="comment-card-header"><span>${comment.ownerName}</span><span>${new Date(comment.createdAt).toLocaleString()}</span></div><div class="comment-card-body">${escapeHtml(comment.message)}</div>`;
+                item.innerHTML = `<div class="comment-card-header"><span>${renderUserRatingBadgeHtml(comment.userId || comment.ownerId || comment.user_id || '', true, true)} ${escapeHtml(comment.ownerName)}</span><span>${new Date(comment.createdAt).toLocaleString()}</span></div><div class="comment-card-body">${escapeHtml(comment.message)}</div>`;
                 list.appendChild(item);
             });
         }
@@ -3425,7 +3501,7 @@
 
                 item.innerHTML = `
                     <div class="comment-card-header">
-                        <span>${request.requesterName} requested to ${request.type}</span>
+                        <span>${renderUserRatingBadgeHtml(request.requesterId, true, true)} ${escapeHtml(request.requesterName)} requested to ${request.type}</span>
                         <span style="color:${statusColor};">${request.status.charAt(0).toUpperCase() + request.status.slice(1)}</span>
                     </div>
                     <div class="comment-card-body">${escapeHtml(request.message)}</div>
@@ -3778,6 +3854,15 @@
                 return;
             }
 
+            const userRatingButton = event.target.closest('[data-user-rating-id]');
+            if (userRatingButton) {
+                const userId = userRatingButton.dataset.userRatingId;
+                if (userId) {
+                    openUserReviewsModal(userId);
+                }
+                return;
+            }
+
             const ratingButton = event.target.closest('.rate-trade-btn');
             if (!ratingButton) return;
             event.preventDefault();
@@ -3834,6 +3919,15 @@
             return { average: avg, count: ratings.length, label: `★ ${avg} (${ratings.length} trades)` };
         }
 
+        function renderUserRatingBadgeHtml(userId, compact = false, isButton = true) {
+            const summary = getUserRatingSummary(userId);
+            const label = summary.count ? `★ ${summary.average.toFixed(1)} (${summary.count})` : '★ New';
+            if (!isButton) {
+                return `<span class="user-rating-static-pill" style="display:inline-block; padding:4px 8px; border-radius:999px; background: rgba(255,158,59,0.12); color:#ffb266; border:1px solid rgba(255,158,59,0.35); font-size:11px; font-weight:700;">${escapeHtml(label)}</span>`;
+            }
+            return `<button type="button" class="user-rating-badge-button" data-user-rating-id="${escapeHtml(userId || '')}" style="display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; background: rgba(255,158,59,0.12); color:#ffb266; border:1px solid rgba(255,158,59,0.35); font-size:11px; font-weight:700; cursor:pointer;">${escapeHtml(label)}</button>`;
+        }
+
         function getUserRatingBadge(userId, compact = false) {
             const summary = getUserRatingSummary(userId);
             if (!summary.count) {
@@ -3886,8 +3980,7 @@
             const profileLabel = document.getElementById('navProfileUsername');
             if (!profileLabel || !currentUser) return;
             const displayName = currentUser.displayName || currentUser.username || 'My Profile';
-            const badge = getUserRatingBadge(currentUser.id, true);
-            profileLabel.innerHTML = `${escapeHtml(displayName)} <span style="font-size:11px; opacity:0.9; cursor:pointer;" onclick="openUserReviewsModal('${currentUser.id}')">${escapeHtml(badge)}</span>`;
+            profileLabel.innerHTML = `${escapeHtml(displayName)} ${renderUserRatingBadgeHtml(currentUser.id, true, true)}`;
         }
 
         function triggerRatingForAcceptedTrade(request) {
@@ -3910,6 +4003,7 @@
             if (!modal) return;
             const userName = getDisplayUserNameById(userId) || 'Trader';
             const summary = getUserRatingSummary(userId);
+            modal.dataset.userId = userId;
             document.getElementById('userReviewsTitle').textContent = `${userName}`;
             document.getElementById('userReviewsAvatar').textContent = (userName || 'U').charAt(0).toUpperCase();
             document.getElementById('userReviewsOnlineStatus').textContent = 'Active trader';
@@ -4048,6 +4142,9 @@
             if (userReviewsModal && userReviewsModal.style.display === 'flex') {
                 openUserReviewsModal(ratedUserId);
             }
+            if (typeof refreshUserRatingsFromSupabase === 'function') {
+                void refreshUserRatingsFromSupabase();
+            }
         }
 
         function completeTrade(cardId, requestId) {
@@ -4109,6 +4206,35 @@
             if (!['open', 'accepted', 'declined', 'history'].includes(tab)) return;
             currentTradeOffersTab = tab;
             renderTradeNotifications();
+        }
+
+        async function refreshUserRatingsFromSupabase() {
+            if (!isSupabaseConfigured() || !supabaseClient || !supabaseClient.from) return;
+            try {
+                const { data, error } = await supabaseClient.from('user_ratings').select('*');
+                if (error) {
+                    console.warn('Rating refresh failed', error);
+                    return;
+                }
+                if (Array.isArray(data)) {
+                    const nextRatings = data.map(item => ({
+                        tradeId: item.trade_id,
+                        raterUserId: item.rater_user_id,
+                        ratedUserId: item.rated_user_id,
+                        score: Number(item.rating || 0),
+                        reviewText: item.review_text || '',
+                        createdAt: item.created_at || new Date().toISOString(),
+                        role: item.role || 'buyer',
+                        tradeContext: item.trade_context || ''
+                    }));
+                    saveUserRatingsStore(nextRatings);
+                    updateCurrentUserProfileDisplay();
+                    renderTradeNotifications();
+                    renderCollectionTable();
+                }
+            } catch (e) {
+                console.warn('Rating refresh error', e);
+            }
         }
 
         function renderMyListingsPanel() {
@@ -4191,7 +4317,7 @@
                                 <div class="offer-card-status" style="color:#89cff0;">${escapeHtml(listing.condition || 'NM')}</div>
                             </div>
                             <div class="offer-card-body">
-                                <div><strong>Seller:</strong> <span style="cursor:pointer;" onclick="openUserReviewsModal('${listing.ownerId}')">${escapeHtml(sellerDisplay)} ${escapeHtml(userRating)}</span></div>
+                                <div><strong>Seller:</strong> <span style="display:inline-flex; align-items:center; gap:6px;">${escapeHtml(sellerDisplay)} ${renderUserRatingBadgeHtml(listing.ownerId, true, true)}</span></div>
                                 <div><strong>Price / Trade:</strong> ${escapeHtml(listing.price || 'No offer set')}</div>
                                 ${listing.notes ? `<div style="margin-top:8px;">${escapeHtml(listing.notes)}</div>` : ''}
                             </div>
@@ -4378,7 +4504,7 @@
             return `
                 <div class="offer-card">
                     <div class="offer-card-header">
-                        <div style="color:#fff; font-size:15px;"><strong>${escapeHtml(cardMeta.name)}</strong> — ${escapeHtml(request.type)} ${isMadeSection ? 'to' : 'from'} <span style="cursor:pointer;" onclick="openUserReviewsModal('${peerUserId}')">${escapeHtml(peerName)} ${escapeHtml(ratingBadge)}</span></div>
+                        <div style="color:#fff; font-size:15px;"><strong>${escapeHtml(cardMeta.name)}</strong> — ${escapeHtml(request.type)} ${isMadeSection ? 'to' : 'from'} <span style="display:inline-flex; align-items:center; gap:6px;">${escapeHtml(peerName)} ${renderUserRatingBadgeHtml(peerUserId, true, true)}</span></div>
                         <div class="offer-card-status" style="color:${statusColor};">${statusText}</div>
                     </div>
                     ${turnBadge.text ? `<div style="margin-top:8px; ${turnBadge.style}; border-radius:999px; padding:5px 10px; font-size:11px; font-weight:bold; display:inline-block;">${escapeHtml(turnBadge.text)}</div>` : ''}
@@ -4597,6 +4723,8 @@
             }
 
             localStorage.setItem('mtgTradeListings_v2', JSON.stringify(tradeListings));
+            void syncMarketplaceListingToSupabase(listing);
+            void fetchMarketplaceListingsFromSupabase();
             closeTradeListingModal();
             renderTradeNotifications();
             alert('Your card listing has been updated in the Trade Hub.');
