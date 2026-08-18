@@ -3729,6 +3729,35 @@
             navigateToView('home');
         }
 
+        function exposeGlobalHandlers() {
+            const handlerNames = [
+                'toggleNavDropdown', 'navigateToView', 'showAuthFlow', 'signInUser', 'createAccountUser',
+                'sendPasswordReset', 'loginWithDefaults', 'logoutUser', 'toggleModal', 'closeModalOnBackdrop',
+                'filterModalPrintings', 'renderModalPrintingsTable', 'toggleNotificationsDropdown',
+                'closeNotificationsDropdown', 'renderNotificationBadge', 'markTradeNotificationsSeen',
+                'renderTradeNotifications', 'handleAutocomplete', 'handleKeyPress', 'executeSearch', 'displayResults',
+                'adjustQuantity', 'executeDirectQuantityAdjust', 'renderCollectionTable', 'toggleColorFilter',
+                'setColorFilterMode', 'setTypeFilter', 'setBinderViewMode', 'openCardCommentModal',
+                'closeCardCommentModal', 'closeCardCommentModalOnBackdrop', 'openAddFriendModal',
+                'closeAddFriendModal', 'sendFriendRequest', 'openBinderLocationsModal', 'closeBinderLocationsModal',
+                'exploreFriendBinder', 'exitFriendBinderView', 'renderFriendsGrid', 'removeFriend', 'showRightPreviewAtIndex',
+                'clearRightPreviewCard', 'openCardModalFromContainer'
+            ];
+
+            handlerNames.forEach((name) => {
+                try {
+                    const fn = typeof globalThis[name] === 'function' ? globalThis[name] : eval(name);
+                    if (typeof fn === 'function') {
+                        window[name] = fn;
+                    }
+                } catch (e) {
+                    // Ignore handlers that are not available yet.
+                }
+            });
+        }
+
+        exposeGlobalHandlers();
+
         /* --- PRINTINGS POPUP MODAL ARCHITECTURE CONTROLS --- */
         function toggleModal(show) {
             const modal = document.getElementById('printingsModal');
@@ -3921,78 +3950,47 @@
             });
         }
 
-            } else if (selectedSection === 'perm' || selectedSection === 'nonperm') {
-                bucketCards.forEach(bucket => {
-                    if (selectedSection === 'perm') perm = perm.concat(bucket.perm);
-                    else nonperm = nonperm.concat(bucket.nonperm);
-                });
-            }
-
-            let detailLabel = selectedBucket !== null ? `CMC ${selectedBucket === 10 ? '10+' : selectedBucket}` : 'Selected';
-            if (selectedSection) {
-                detailLabel += selectedBucket !== null ? ` - ${selectedSection === 'perm' ? 'Permanents' : 'Non-Permanents'}` : ` - ${selectedSection === 'perm' ? 'Permanents' : 'Non-Permanents'}`;
-            }
-            title.textContent = detailLabel;
-            container.appendChild(title);
-
-            if (!selectedSection || selectedSection === 'perm') {
-                const permTitle = document.createElement('div');
-                permTitle.style.color = '#4ade80';
-                permTitle.style.fontWeight = '700';
-                permTitle.textContent = `Permanents (${perm.reduce((sum, card) => sum + card.qty, 0)})`;
-                container.appendChild(permTitle);
-                if (perm.length === 0) {
-                    const empty = document.createElement('div');
-                    empty.style.color = '#666';
-                    empty.style.marginBottom = '8px';
-                    empty.textContent = 'No permanent cards match this selection.';
-                    container.appendChild(empty);
-                } else {
-                    perm.forEach(it => {
-                        const row = document.createElement('div');
-                        row.style.color = '#ddd';
-                        row.style.fontSize = '13px';
-                        row.style.marginBottom = '4px';
-                        const nameSpan = document.createElement('span');
-                        nameSpan.className = 'clickable-card-name';
-                        nameSpan.textContent = `${it.qty}x [${it.cmc}] ${it.name}`;
-                        nameSpan.style.cursor = 'pointer';
-                        nameSpan.onclick = () => openRightPreviewFromContainer(it.id, nameSpan);
-                        row.appendChild(nameSpan);
-                        container.appendChild(row);
-                    });
-                }
-            }
-
-            if (!selectedSection || selectedSection === 'nonperm') {
-                const nonTitle = document.createElement('div');
-                nonTitle.style.color = '#60a5fa';
-                nonTitle.style.fontWeight = '700';
-                nonTitle.style.marginTop = '10px';
-                nonTitle.textContent = `Non-Permanents (${nonperm.reduce((sum, card) => sum + card.qty, 0)})`;
-                container.appendChild(nonTitle);
-                if (nonperm.length === 0) {
-                    const empty = document.createElement('div');
-                    empty.style.color = '#666';
-                    empty.textContent = 'No non-permanent cards match this selection.';
-                    container.appendChild(empty);
-                } else {
-                    nonperm.forEach(it => {
-                        const row = document.createElement('div');
-                        row.style.color = '#ddd';
-                        row.style.fontSize = '13px';
-                        row.style.marginBottom = '4px';
-                        const nameSpan = document.createElement('span');
-                        nameSpan.className = 'clickable-card-name';
-                        nameSpan.textContent = `${it.qty}x [${it.cmc}] ${it.name}`;
-                        nameSpan.style.cursor = 'pointer';
-                        nameSpan.onclick = () => openRightPreviewFromContainer(it.id, nameSpan);
-                        row.appendChild(nameSpan);
-                        container.appendChild(row);
-                    });
-                }
-            }
-        }
+        Object.assign(window, {
+            toggleNavDropdown,
+            navigateToView,
+            showAuthFlow,
+            signInUser,
+            createAccountUser,
+            sendPasswordReset,
+            loginWithDefaults,
+            logoutUser,
+            handleAutocomplete,
+            handleKeyPress,
+            executeSearch,
+            displayResults,
+            adjustQuantity,
+            executeDirectQuantityAdjust,
+            renderCollectionTable,
+            toggleColorFilter,
+            setColorFilterMode,
+            setTypeFilter,
+            setBinderViewMode,
+            openCardCommentModal,
+            closeCardCommentModal,
+            closeCardCommentModalOnBackdrop,
+            openAddFriendModal,
+            closeAddFriendModal,
+            sendFriendRequest,
+            openBinderLocationsModal,
+            closeBinderLocationsModal,
+            exploreFriendBinder,
+            exitFriendBinderView,
+            renderFriendsGrid,
+            removeFriend,
+            showRightPreviewAtIndex,
+            clearRightPreviewCard,
+            openCardModalFromContainer,
+            renderTradeNotifications,
+            toggleNotificationsDropdown,
+            closeNotificationsDropdown,
+            renderNotificationBadge,
+            markTradeNotificationsSeen
+        });
     </script>
 </body>
 </html>
