@@ -3741,13 +3741,18 @@
             if (event.target.id === 'ratingReviewModal') closeRatingReviewModal();
         }
 
-        function openRatingReviewModal(request, ratedUserId) {
+        function openRatingReviewModal(request, ratedUserId, raterRole) {
             const modal = document.getElementById('ratingReviewModal');
             if (!modal || !request || !ratedUserId) return;
+            const effectiveRaterRole = raterRole || getTradeRoleForUser(request, currentUser?.id) || 'buyer';
             modal.dataset.tradeId = request.requestId;
             modal.dataset.ratedUserId = ratedUserId;
-            const ratedName = getOwnerDisplayName(ratedUserId) || 'this user';
-            document.getElementById('ratingReviewModalTitle').textContent = `Rate ${ratedName}`;
+            modal.dataset.raterRole = effectiveRaterRole;
+            modal.dataset.selectedScore = '0';
+            const ratedName = getDisplayUserNameById(ratedUserId) || 'this user';
+            const targetRole = effectiveRaterRole === 'seller' ? 'Buyer' : 'Seller';
+            document.getElementById('ratingReviewModalTitle').textContent = `Rate ${targetRole} ${ratedName}`;
+            document.getElementById('ratingReviewModalContext').textContent = `Verified trade: ${getTradeContextSummary(request, currentUser?.id || null)}`;
             document.getElementById('ratingReviewText').value = '';
             setSelectedStar(0);
             modal.style.display = 'flex';
@@ -3766,10 +3771,22 @@
         }
 
         document.addEventListener('click', function(event) {
-            const button = event.target.closest('.star-rating-btn');
-            if (!button) return;
-            const score = Number(button.dataset.star || 0);
-            setSelectedStar(score);
+            const starButton = event.target.closest('.star-rating-btn');
+            if (starButton) {
+                const score = Number(starButton.dataset.star || 0);
+                setSelectedStar(score);
+                return;
+            }
+
+            const ratingButton = event.target.closest('.rate-trade-btn');
+            if (!ratingButton) return;
+            event.preventDefault();
+            const tradeId = ratingButton.dataset.tradeId;
+            const targetUserId = ratingButton.dataset.targetUserId;
+            const raterRole = ratingButton.dataset.raterRole || 'buyer';
+            const request = findTradeRequestById(tradeId);
+            if (!request || !targetUserId) return;
+            openRatingReviewModal(request, targetUserId, raterRole);
         });
 
         function getUserRatingsStore() {
@@ -3887,23 +3904,6 @@
             triggerRatingForAcceptedTrade(request);
         }
 
-        function openRatingReviewModal(request, ratedUserId, raterRole) {
-            const modal = document.getElementById('ratingReviewModal');
-            if (!modal || !request || !ratedUserId) return;
-            const effectiveRaterRole = raterRole || getTradeRoleForUser(request, currentUser.id) || 'buyer';
-            const roleTitle = effectiveRaterRole === 'seller' ? 'Buyer' : 'Seller';
-            modal.dataset.tradeId = request.requestId;
-            modal.dataset.ratedUserId = ratedUserId;
-            modal.dataset.raterRole = effectiveRaterRole;
-            modal.dataset.selectedScore = '0';
-            const ratedName = getDisplayUserNameById(ratedUserId) || 'this trader';
-            document.getElementById('ratingReviewModalTitle').textContent = `Rate ${roleTitle} ${ratedName}`;
-            document.getElementById('ratingReviewModalContext').textContent = `Verified trade: ${getTradeContextSummary(request, currentUser.id)}`;
-            document.getElementById('ratingReviewText').value = '';
-            setSelectedStar(0);
-            modal.style.display = 'flex';
-        }
-
         function openUserReviewsModal(userId) {
             if (!userId) return;
             const modal = document.getElementById('userReviewsModal');
@@ -4002,7 +4002,7 @@
 
         function submitUserRating() {
             const modal = document.getElementById('ratingReviewModal');
-            if (!modal) return;
+            if (!modal || !currentUser) return;
             const tradeId = modal.dataset.tradeId;
             const ratedUserId = modal.dataset.ratedUserId;
             const score = Number(modal.dataset.selectedScore || 0);
@@ -4032,12 +4032,20 @@
             };
             ratings.push(record);
             saveUserRatingsStore(ratings);
-            void syncUserRatingToSupabase(record);
+            void syncUserRatingToSupabase({
+                tradeId: record.tradeId,
+                raterUserId: record.raterUserId,
+                ratedUserId: record.ratedUserId,
+                score: record.score,
+                reviewText: record.reviewText,
+                createdAt: record.createdAt
+            });
             closeRatingReviewModal();
             renderTradeNotifications();
             renderBrowseMarketplacePanel();
             updateCurrentUserProfileDisplay();
-            if (document.getElementById('userReviewsModal').style.display === 'flex') {
+            const userReviewsModal = document.getElementById('userReviewsModal');
+            if (userReviewsModal && userReviewsModal.style.display === 'flex') {
                 openUserReviewsModal(ratedUserId);
             }
         }
@@ -4109,8 +4117,11 @@
                 return '<div class="offer-card" style="color:#999;">Sign in to create marketplace listings for your binder.</div>';
             }
 
-            const userListings = tradeListings.filter(listing => listing.ownerId === currentUserId);
-            if (userListings.length === 0) {
+            const activeListings = (tradeListings || [])
+                .filter(listing => listing.ownerId === currentUserId)
+                .filter(listing => (listing.status || 'active') === 'active');
+
+            if (activeListings.length === 0) {
                 return `
                     <div class="offer-card" style="color:#999;">
                         You have not listed any cards yet. Open a card’s actions menu and choose “List on Marketplace” to add one.
@@ -4118,9 +4129,14 @@
                 `;
             }
 
-            return userListings.slice().reverse().map(listing => {
+            return activeListings.slice().reverse().map(listing => {
                 const cardMeta = cardMetadataCache[listing.cardId] || { name: 'Unknown Card', set: '???' };
                 const qty = (collectionData[listing.cardId] && collectionData[listing.cardId][currentUserId]) || 0;
+                if (qty <= 0) {
+                    listing.status = 'completed';
+                    void syncTradeListingStatusToSupabase(listing.id, 'completed');
+                    return '';
+                }
                 const imageUrl = getCardPreviewImage(cardMeta, 0) || cardMeta.art_crop || cardMeta.image_uris?.border_crop || cardMeta.image_uris?.large || cardMeta.image_uris?.normal || cardMeta.image_uris?.png || '';
                 return `
                     <div class="offer-card trade-listing-card">
@@ -4265,17 +4281,18 @@
                 : allRequests.filter(r => r.ownerId === currentUser.id);
 
             const filteredRequests = sectionRequests.filter(request => {
+                const normalizedStatus = String(request.status || '').toLowerCase();
                 if (currentTradeOffersTab === 'open') {
-                    return request.status === 'pending' || request.status === 'countered';
+                    return normalizedStatus === 'pending' || normalizedStatus === 'countered';
                 }
                 if (currentTradeOffersTab === 'accepted') {
-                    return request.status === 'accepted';
+                    return normalizedStatus === 'accepted' || normalizedStatus === 'completed';
                 }
                 if (currentTradeOffersTab === 'declined') {
-                    return request.status === 'declined';
+                    return normalizedStatus === 'declined' || normalizedStatus === 'cancelled';
                 }
                 if (currentTradeOffersTab === 'history') {
-                    return request.status === 'completed';
+                    return ['accepted', 'completed', 'declined', 'cancelled'].includes(normalizedStatus);
                 }
                 return false;
             });
@@ -4345,7 +4362,8 @@
                 const targetUserId = getTradeCounterpartyId(request, currentUser.id);
                 const targetRoleLabel = currentUserRole === 'seller' ? 'Buyer' : 'Seller';
                 if (targetUserId) {
-                    actionHtml = `<button class="styled-btn" onclick="openRatingReviewModal(${JSON.stringify(request)}, '${targetUserId}', '${currentUserRole}')">★ Rate ${targetRoleLabel}</button>`;
+                    const requestJson = JSON.stringify(request).replace(/'/g, "&apos;");
+                    actionHtml = `<button class="styled-btn rate-trade-btn" data-trade-id="${escapeHtml(request.requestId)}" data-target-user-id="${escapeHtml(targetUserId)}" data-rater-role="${escapeHtml(currentUserRole)}" data-request-json="${requestJson}">★ Rate ${targetRoleLabel}</button>`;
                 }
             } else if ((normalizedStatus === 'accepted' || normalizedStatus === 'completed') && currentUserTradeRating) {
                 actionHtml = '<span style="display:inline-block; padding:6px 10px; border-radius:999px; background:rgba(126,237,127,0.12); color:#9ae69a; border:1px solid rgba(126,237,127,0.35); font-size:12px; font-weight:700;">✓ Rated</span>';
@@ -4586,6 +4604,10 @@
 
         function removeTradeListing(listingId) {
             tradeListings = tradeListings.map(item => item.id === listingId ? { ...item, status: 'delisted' } : item);
+            const listing = tradeListings.find(item => item.id === listingId);
+            if (listing) {
+                void syncTradeListingStatusToSupabase(listing.id, 'delisted');
+            }
             localStorage.setItem('mtgTradeListings_v2', JSON.stringify(tradeListings));
             renderTradeNotifications();
         }
