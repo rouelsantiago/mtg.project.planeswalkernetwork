@@ -4563,8 +4563,7 @@
 
             if (normalizedStatus === 'accepted' && request.requesterId === currentUser.id) {
                 actionHtml = `<button class="styled-btn" onclick="completeTrade('${request.cardId}', '${request.requestId}')">Complete Trade</button>`;
-            }
-            if (['pending', 'countered'].includes(normalizedStatus) && isCurrentUsersTurn) {
+            } else if (['pending', 'countered'].includes(normalizedStatus) && isCurrentUsersTurn) {
                 if (normalizedStatus === 'pending') {
                     actionHtml = `
                         <button class="styled-btn" onclick="respondToTradeRequest('${request.cardId}', '${request.requestId}', 'accept')">Accept</button>
@@ -4578,8 +4577,7 @@
                         <button class="styled-btn" onclick="openCounterOfferModal('${request.cardId}', '${request.requestId}')">Counter Again</button>
                     `;
                 }
-            }
-            if ((normalizedStatus === 'accepted' || normalizedStatus === 'completed') && currentUser && currentUserRole && !currentUserTradeRating) {
+            } else if ((normalizedStatus === 'accepted' || normalizedStatus === 'completed') && currentUser && currentUserRole && !currentUserTradeRating) {
                 const targetUserId = getTradeCounterpartyId(request, currentUser.id);
                 const targetRoleLabel = currentUserRole === 'seller' ? 'Buyer' : 'Seller';
                 if (targetUserId) {
