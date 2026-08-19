@@ -1855,6 +1855,7 @@
         let currentMarketplaceSort = 'newest';
         let currentMarketplaceSearch = '';
         let currentMarketplaceTypeFilters = [];
+        let currentMarketplaceColorFilters = [];
         let expandedTradeCards = {};
         
         // Keeps track of the collapsed status of individual category headers
@@ -4340,6 +4341,56 @@
             }).join('');
         }
 
+        function clearMarketplaceFilters() {
+            currentMarketplaceSearch = '';
+            currentMarketplaceSort = 'newest';
+            currentMarketplaceTypeFilters = [];
+            currentMarketplaceColorFilters = [];
+            renderTradeNotifications();
+        }
+
+        function normalizeMarketplaceCardData(cardData) {
+            const meta = cardData || {};
+            const typeLine = String(meta.type_line || meta.type || meta.typeLine || '').trim();
+            const rawColors = Array.isArray(meta.colors)
+                ? meta.colors
+                : (typeof meta.colors === 'string' ? meta.colors.split(',') : []);
+            const rawIdentity = Array.isArray(meta.color_identity)
+                ? meta.color_identity
+                : (typeof meta.color_identity === 'string' ? meta.color_identity.split(',') : []);
+            const colors = [...rawColors, ...rawIdentity]
+                .map(value => String(value || '').trim().toLowerCase())
+                .filter(Boolean);
+            return {
+                typeLine: typeLine.toLowerCase(),
+                colors: [...new Set(colors)],
+                isColorless: colors.length === 0
+            };
+        }
+
+        function matchesMarketplaceColorFilters(listing) {
+            if (!Array.isArray(currentMarketplaceColorFilters) || currentMarketplaceColorFilters.length === 0) return true;
+            const meta = cardMetadataCache[listing.cardId] || {};
+            const { colors, isColorless } = normalizeMarketplaceCardData(meta);
+            return currentMarketplaceColorFilters.some(color => {
+                const normalizedColor = String(color || '').trim().toLowerCase();
+                if (normalizedColor === 'c') return isColorless || colors.includes('c');
+                return colors.includes(normalizedColor);
+            });
+        }
+
+        function toggleMarketplaceColorFilter(colorName) {
+            const normalized = String(colorName || '').trim().toLowerCase();
+            if (!normalized) return;
+            const index = currentMarketplaceColorFilters.indexOf(normalized);
+            if (index >= 0) {
+                currentMarketplaceColorFilters.splice(index, 1);
+            } else {
+                currentMarketplaceColorFilters.push(normalized);
+            }
+            renderTradeNotifications();
+        }
+
         function toggleMarketplaceTypeFilter(typeName) {
             const normalized = String(typeName || '').trim();
             if (!normalized) return;
@@ -4361,15 +4412,64 @@
 
         function matchesMarketplaceTypeFilters(listing) {
             if (!Array.isArray(currentMarketplaceTypeFilters) || currentMarketplaceTypeFilters.length === 0) return true;
-            const typeLine = (cardMetadataCache[listing.cardId] && (cardMetadataCache[listing.cardId].type_line || cardMetadataCache[listing.cardId].typeLine)) || '';
-            return currentMarketplaceTypeFilters.some(type => typeLine.toLowerCase().includes(type.toLowerCase()));
+            const meta = cardMetadataCache[listing.cardId] || {};
+            const typeLine = String(meta.type_line || meta.type || meta.typeLine || '').toLowerCase();
+            return currentMarketplaceTypeFilters.some(type => typeLine.includes(String(type || '').trim().toLowerCase()));
+        }
+
+        function matchesMarketplaceFilters(listing) {
+            if (!listing) return false;
+            return matchesMarketplaceColorFilters(listing) && matchesMarketplaceTypeFilters(listing);
         }
 
         function renderBrowseMarketplacePanel() {
+            const colorOptions = [
+                { value: 'w', label: 'W' },
+                { value: 'u', label: 'U' },
+                { value: 'b', label: 'B' },
+                { value: 'r', label: 'R' },
+                { value: 'g', label: 'G' },
+                { value: 'c', label: '◇' }
+            ];
             const typeOptions = ['Creature', 'Artifact', 'Instant', 'Sorcery', 'Enchantment', 'Planeswalker', 'Land'];
             const activeListings = (tradeListings || []).filter(listing => (listing.status || 'active') === 'active');
+            const toolbar = `
+                <div class="trade-history-toolbar" style="display:flex; gap:12px; align-items:center; margin: 0 0 12px; flex-wrap:wrap;">
+                    <input type="text" value="${escapeHtml(currentMarketplaceSearch)}" placeholder="Search by card name, seller, or notes..." oninput="currentMarketplaceSearch = this.value; renderTradeNotifications();" style="flex:1; min-width:220px; background:#111; color:#fff; border:1px solid #333; border-radius:8px; padding:10px 12px;" />
+                    <button type="button" class="styled-btn secondary" onclick="clearMarketplaceFilters()" style="white-space:nowrap;">Clear All Filters</button>
+                    <select onchange="currentMarketplaceSort = this.value; renderTradeNotifications();" style="background:#111; color:#fff; border:1px solid #333; border-radius:8px; padding:10px 12px; min-width:200px;">
+                        <option value="newest" ${currentMarketplaceSort === 'newest' ? 'selected' : ''}>Newest to Oldest</option>
+                        <option value="oldest" ${currentMarketplaceSort === 'oldest' ? 'selected' : ''}>Oldest to Newest</option>
+                        <option value="price-low" ${currentMarketplaceSort === 'price-low' ? 'selected' : ''}>Price: Low to High</option>
+                        <option value="price-high" ${currentMarketplaceSort === 'price-high' ? 'selected' : ''}>Price: High to Low</option>
+                        <option value="az" ${currentMarketplaceSort === 'az' ? 'selected' : ''}>A - Z</option>
+                        <option value="za" ${currentMarketplaceSort === 'za' ? 'selected' : ''}>Z - A</option>
+                    </select>
+                </div>
+                <div style="margin: 0 0 10px;">
+                    <div style="color:#aaa; font-size:12px; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.08em;">Colors</div>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                        ${colorOptions.map(({ value, label }) => `
+                            <button type="button" class="filter-pill ${currentMarketplaceColorFilters.includes(value) ? 'active' : ''}" data-color="${value}" onclick="toggleMarketplaceColorFilter('${value}')" style="padding:8px 12px; border-radius:999px; border:1px solid #444; background:${currentMarketplaceColorFilters.includes(value) ? '#ff9e3b' : '#1a1a1a'}; color:${currentMarketplaceColorFilters.includes(value) ? '#111' : '#fff'}; font-size:12px; min-width: 42px;">
+                                ${label}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+                <div style="margin: 0 0 12px;">
+                    <div style="color:#aaa; font-size:12px; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.08em;">Types</div>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                        ${typeOptions.map(type => `
+                            <button type="button" class="filter-pill ${currentMarketplaceTypeFilters.includes(type) ? 'active' : ''}" onclick="toggleMarketplaceTypeFilter('${type}')" style="padding:8px 12px; border-radius:999px; border:1px solid #444; background:${currentMarketplaceTypeFilters.includes(type) ? '#ff9e3b' : '#1a1a1a'}; color:${currentMarketplaceTypeFilters.includes(type) ? '#111' : '#fff'}; font-size:12px; min-width: 90px;">
+                                ${type}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
             if (!activeListings || activeListings.length === 0) {
-                return '<div class="offer-card" style="color:#999;">There are no active marketplace listings right now.</div>';
+                return `${toolbar}<div class="offer-list-container"><div class="offer-card" style="color:#999;">There are no active marketplace listings right now.</div></div>`;
             }
 
             let visibleListings = activeListings.filter(listing => listing.ownerId !== currentUser.id);
@@ -4377,11 +4477,18 @@
                 const query = currentMarketplaceSearch.toLowerCase();
                 visibleListings = visibleListings.filter(listing => {
                     const cardMeta = cardMetadataCache[listing.cardId] || { name: '', set: '' };
-                    const ownerName = (listing.ownerName || '').toLowerCase();
-                    const notes = (listing.notes || '').toLowerCase();
-                    const priceText = (listing.price || '').toLowerCase();
-                    return (cardMeta.name || '').toLowerCase().includes(query) || ownerName.includes(query) || notes.includes(query) || priceText.includes(query);
+                    const ownerName = String(listing.ownerName || '').toLowerCase();
+                    const notes = String(listing.notes || '').toLowerCase();
+                    const priceText = String(listing.price || '').toLowerCase();
+                    const cardName = String(cardMeta.name || '').toLowerCase();
+                    return cardName.includes(query) || ownerName.includes(query) || notes.includes(query) || priceText.includes(query);
                 });
+            }
+            if (!matchesMarketplaceFilters) {
+                visibleListings = visibleListings.filter(listing => matchesMarketplaceFilters(listing));
+            }
+            if (currentMarketplaceColorFilters.length > 0) {
+                visibleListings = visibleListings.filter(listing => matchesMarketplaceColorFilters(listing));
             }
             if (currentMarketplaceTypeFilters.length > 0) {
                 visibleListings = visibleListings.filter(listing => matchesMarketplaceTypeFilters(listing));
@@ -4392,8 +4499,8 @@
                 const bTime = new Date(b.createdAt || 0).getTime();
                 const aPrice = getMarketplacePriceValue(a);
                 const bPrice = getMarketplacePriceValue(b);
-                const aName = (cardMetadataCache[a.cardId]?.name || '').toLowerCase();
-                const bName = (cardMetadataCache[b.cardId]?.name || '').toLowerCase();
+                const aName = String(cardMetadataCache[a.cardId]?.name || '').toLowerCase();
+                const bName = String(cardMetadataCache[b.cardId]?.name || '').toLowerCase();
                 if (currentMarketplaceSort === 'oldest') return aTime - bTime;
                 if (currentMarketplaceSort === 'price-low') return aPrice - bPrice || aTime - bTime;
                 if (currentMarketplaceSort === 'price-high') return bPrice - aPrice || aTime - bTime;
@@ -4402,61 +4509,36 @@
                 return bTime - aTime;
             });
 
-            if (visibleListings.length === 0) {
-                return `
-                    <div class="offer-card" style="color:#999;">
-                        ${currentMarketplaceSearch ? `No marketplace listings found matching '${escapeHtml(currentMarketplaceSearch)}'.` : 'No other users are currently selling or trading cards in the marketplace.'}
-                    </div>
-                `;
-            }
-
-            const toolbar = `
-                <div class="trade-history-toolbar" style="display:flex; gap:12px; align-items:center; margin: 0 0 12px; flex-wrap:wrap;">
-                    <input type="text" value="${escapeHtml(currentMarketplaceSearch)}" placeholder="Search by card name, seller, or notes..." oninput="currentMarketplaceSearch = this.value; renderTradeNotifications();" style="flex:1; min-width:220px; background:#111; color:#fff; border:1px solid #333; border-radius:8px; padding:10px 12px;" />
-                    <select onchange="currentMarketplaceSort = this.value; renderTradeNotifications();" style="background:#111; color:#fff; border:1px solid #333; border-radius:8px; padding:10px 12px; min-width:200px;">
-                        <option value="newest" ${currentMarketplaceSort === 'newest' ? 'selected' : ''}>Newest to Oldest</option>
-                        <option value="oldest" ${currentMarketplaceSort === 'oldest' ? 'selected' : ''}>Oldest to Newest</option>
-                        <option value="price-low" ${currentMarketplaceSort === 'price-low' ? 'selected' : ''}>Price: Low to High</option>
-                        <option value="price-high" ${currentMarketplaceSort === 'price-high' ? 'selected' : ''}>Price: High to Low</option>
-                        <option value="az" ${currentMarketplaceSort === 'az' ? 'selected' : ''}>A - Z</option>
-                        <option value="za" ${currentMarketplaceSort === 'za' ? 'selected' : ''}>Z - A</option>
-                    </select>
-                </div>
-                <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
-                    ${typeOptions.map(type => `
-                        <button type="button" class="filter-pill ${currentMarketplaceTypeFilters.includes(type) ? 'active' : ''}" onclick="toggleMarketplaceTypeFilter('${type}')" style="padding:8px 12px; border-radius:999px; border:1px solid #444; background:${currentMarketplaceTypeFilters.includes(type) ? '#ff9e3b' : '#1a1a1a'}; color:${currentMarketplaceTypeFilters.includes(type) ? '#111' : '#fff'}; font-size:12px; min-width: 90px;">
-                            ${type}
-                        </button>
-                    `).join('')}
-                </div>
-            `;
-
-            return toolbar + visibleListings.map(listing => {
-                const cardMeta = cardMetadataCache[listing.cardId] || { name: 'Unknown Card', set: '???' };
-                const sellerDisplay = listing.ownerName || 'Trader';
-                const imageUrl = getCardPreviewImage(cardMeta, 0) || cardMeta.art_crop || cardMeta.image_uris?.border_crop || cardMeta.image_uris?.large || cardMeta.image_uris?.normal || cardMeta.image_uris?.png || '';
-                return `
-                    <div class="offer-card trade-listing-card">
-                        <div class="trade-listing-visual">
-                            <img src="${imageUrl}" alt="${escapeHtml(cardMeta.name)}" onerror="this.style.display='none'">
-                        </div>
-                        <div>
-                            <div class="offer-card-header">
-                                <div style="color:#fff; font-size:15px;"><strong>${escapeHtml(cardMeta.name)}</strong> — ${escapeHtml(cardMeta.set || 'Unknown Set')}</div>
-                                <div class="offer-card-status" style="color:#89cff0;">${escapeHtml(listing.condition || 'NM')}</div>
+            const listingMarkup = visibleListings.length
+                ? visibleListings.map(listing => {
+                    const cardMeta = cardMetadataCache[listing.cardId] || { name: 'Unknown Card', set: '???' };
+                    const sellerDisplay = listing.ownerName || 'Trader';
+                    const imageUrl = getCardPreviewImage(cardMeta, 0) || cardMeta.art_crop || cardMeta.image_uris?.border_crop || cardMeta.image_uris?.large || cardMeta.image_uris?.normal || cardMeta.image_uris?.png || '';
+                    return `
+                        <div class="offer-card trade-listing-card">
+                            <div class="trade-listing-visual">
+                                <img src="${imageUrl}" alt="${escapeHtml(cardMeta.name)}" onerror="this.style.display='none'">
                             </div>
-                            <div class="offer-card-body">
-                                <div><strong>Seller:</strong> <span style="display:inline-flex; align-items:center; gap:6px;">${escapeHtml(sellerDisplay)} ${renderUserRatingBadgeHtml(listing.ownerId, true, true)}</span></div>
-                                <div><strong>Price / Trade:</strong> ${escapeHtml(listing.price || 'No offer set')}</div>
-                                ${listing.notes ? `<div style="margin-top:8px;">${escapeHtml(listing.notes)}</div>` : ''}
-                            </div>
-                            <div class="offer-card-actions">
-                                <button class="styled-btn" onclick="event.stopPropagation(); openCardCommentModal('${listing.cardId}', '${listing.ownerId}')">Send Offer</button>
+                            <div>
+                                <div class="offer-card-header">
+                                    <div style="color:#fff; font-size:15px;"><strong>${escapeHtml(cardMeta.name)}</strong> — ${escapeHtml(cardMeta.set || 'Unknown Set')}</div>
+                                    <div class="offer-card-status" style="color:#89cff0;">${escapeHtml(listing.condition || 'NM')}</div>
+                                </div>
+                                <div class="offer-card-body">
+                                    <div><strong>Seller:</strong> <span style="display:inline-flex; align-items:center; gap:6px;">${escapeHtml(sellerDisplay)} ${renderUserRatingBadgeHtml(listing.ownerId, true, true)}</span></div>
+                                    <div><strong>Price / Trade:</strong> ${escapeHtml(listing.price || 'No offer set')}</div>
+                                    ${listing.notes ? `<div style="margin-top:8px;">${escapeHtml(listing.notes)}</div>` : ''}
+                                </div>
+                                <div class="offer-card-actions">
+                                    <button class="styled-btn" onclick="event.stopPropagation(); openCardCommentModal('${listing.cardId}', '${listing.ownerId}')">Send Offer</button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `;
-            }).join('');
+                    `;
+                }).join('')
+                : `<div class="offer-card" style="color:#999;">${currentMarketplaceSearch || currentMarketplaceColorFilters.length || currentMarketplaceTypeFilters.length ? `No marketplace listings match the active filters.` : 'No other users are currently selling or trading cards in the marketplace.'}</div>`;
+
+            return `${toolbar}<div class="offer-list-container">${listingMarkup}</div>`;
         }
 
         function getTradeNegotiationStatus(request) {
