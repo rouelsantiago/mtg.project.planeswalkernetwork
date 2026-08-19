@@ -1857,6 +1857,7 @@
         let currentMarketplaceTypeFilters = [];
         let currentMarketplaceColorFilters = [];
         let expandedTradeCards = {};
+        let debugStateButton = null;
         
         // Keeps track of the collapsed status of individual category headers
         let collapsedCategoriesTracker = {};
@@ -2291,7 +2292,8 @@
         async function initializeUserSession() {
             ensureUniqueUserIds();
             if (currentUser && currentUser.username) {
-                document.getElementById('navProfileUsername').textContent = currentUser.displayName || currentUser.username;
+                document.getElementById('navProfileUsername').textContent = getUserDisplayNameValue(currentUser, 'My Profile');
+                refreshDebugButtonVisibility();
                 if (!currentUser.guest) {
                     await loadRemoteDataForUser(currentUser.id);
                 }
@@ -2300,6 +2302,7 @@
                 }
             } else {
                 document.getElementById('navProfileUsername').textContent = 'My Profile';
+                refreshDebugButtonVisibility();
                 navigateToView('home');
             }
             ensureCollectionDataStructure();
@@ -2322,7 +2325,19 @@
         };
 
         function addDebugButton() {
+            if (!isCurrentUserAdmin()) {
+                if (debugStateButton) {
+                    debugStateButton.remove();
+                    debugStateButton = null;
+                }
+                return;
+            }
+            if (debugStateButton) {
+                debugStateButton.style.display = 'block';
+                return;
+            }
             const btn = document.createElement('button');
+            btn.id = 'debugStateButton';
             btn.textContent = 'Show Debug State';
             btn.style.position = 'fixed';
             btn.style.right = '12px';
@@ -2333,8 +2348,20 @@
             btn.style.color = '#fff';
             btn.style.border = '1px solid #444';
             btn.style.borderRadius = '6px';
+            btn.style.display = 'block';
             btn.onclick = showDebugState;
             document.body.appendChild(btn);
+            debugStateButton = btn;
+        }
+
+        function refreshDebugButtonVisibility() {
+            if (!isCurrentUserAdmin()) {
+                if (debugStateButton) {
+                    debugStateButton.style.display = 'none';
+                }
+                return;
+            }
+            addDebugButton();
         }
 
         function showDebugState() {
@@ -2967,13 +2994,82 @@
             return requests.filter(r => r.ownerId === ownerId && r.requesterId === currentUser.id).length;
         }
 
+        function getUserDisplayNameValue(userLike, fallback = 'Trader') {
+            if (!userLike || typeof userLike !== 'object') return fallback;
+
+            const normalizeName = (value) => {
+                if (typeof value !== 'string') return '';
+                const trimmed = value.trim();
+                if (!trimmed) return '';
+                if (trimmed.includes('@')) {
+                    const localPart = trimmed.split('@')[0].trim();
+                    return localPart || '';
+                }
+                return trimmed;
+            };
+
+            const orderedCandidates = [
+                userLike.display_name,
+                userLike.displayName,
+                userLike.name,
+                userLike.username,
+                userLike.user_name,
+                userLike.full_name,
+                userLike.displayName || userLike.username || userLike.name
+            ];
+
+            for (const candidate of orderedCandidates) {
+                const normalized = normalizeName(candidate);
+                if (normalized) {
+                    return normalized;
+                }
+            }
+
+            if (typeof userLike.email === 'string') {
+                const emailLocal = userLike.email.split('@')[0].trim();
+                if (emailLocal) {
+                    return emailLocal;
+                }
+            }
+
+            return fallback;
+        }
+
+        function isCurrentUserAdmin() {
+            if (!currentUser || typeof currentUser !== 'object') return false;
+
+            const adminCandidates = [];
+            const nestedMetadata = currentUser.app_metadata || currentUser.user_metadata || {};
+            const profile = currentUser.user_profile || currentUser.profile || {};
+
+            adminCandidates.push(
+                currentUser.role,
+                currentUser.is_admin,
+                currentUser.isAdmin,
+                currentUser.admin,
+                nestedMetadata.role,
+                nestedMetadata.roles,
+                nestedMetadata.is_admin,
+                nestedMetadata.isAdmin,
+                profile.is_admin,
+                profile.isAdmin,
+                profile.role
+            );
+
+            const flattened = adminCandidates.flatMap(value => Array.isArray(value) ? value : [value]);
+            return flattened.some(value => {
+                if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') return false;
+                return String(value).toLowerCase() === 'admin' || value === true || value === 1;
+            });
+        }
+
         function getOwnerDisplayName(ownerId) {
             if (!ownerId) return 'Trader';
-            if (currentUser && currentUser.id === ownerId) return currentUser.displayName || currentUser.username || 'Me';
+            if (currentUser && currentUser.id === ownerId) return getUserDisplayNameValue(currentUser, 'Me');
             const friend = friendsList.find(f => f.id === ownerId);
-            if (friend) return friend.name || friend.username || friend.email || 'Trader';
+            if (friend) return getUserDisplayNameValue(friend, 'Trader');
             const localUser = Object.values(users || {}).find(u => u && u.id === ownerId);
-            if (localUser) return localUser.displayName || localUser.username || localUser.email || 'Trader';
+            if (localUser) return getUserDisplayNameValue(localUser, 'Trader');
             return ownerId;
         }
 
@@ -3590,7 +3686,7 @@
                 ownerId: ownerId,
                 ownerName: getOwnerDisplayName(ownerId),
                 requesterId: currentUser.id,
-                requesterName: currentUser.username || 'Guest',
+                requesterName: getUserDisplayNameValue(currentUser, 'Guest'),
                 type: type,
                 offerDetails: offerSummary,
                 originalOfferSummary: offerSummary,
@@ -3614,7 +3710,7 @@
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
                 history: [
-                    { when: new Date().toISOString(), actor: currentUser.username || 'Guest', note: `Initial offer created: ${offerSummary} (${new Date().toLocaleString()})` }
+                    { when: new Date().toISOString(), actor: getUserDisplayNameValue(currentUser, 'Guest'), note: `Initial offer created: ${offerSummary} (${new Date().toLocaleString()})` }
                 ]
             };
 
@@ -4016,7 +4112,7 @@
             const profileLabel = document.getElementById('navProfileUsername');
             const badgeEl = document.getElementById('navProfileRatingBadge');
             if (!profileLabel) return;
-            const displayName = currentUser ? (currentUser.displayName || currentUser.username || 'My Profile') : 'My Profile';
+            const displayName = currentUser ? getUserDisplayNameValue(currentUser, 'My Profile') : 'My Profile';
             profileLabel.textContent = displayName;
 
             if (badgeEl) {
@@ -4130,11 +4226,11 @@
 
         function getDisplayUserNameById(userId) {
             if (!userId) return 'Trader';
-            if (currentUser && currentUser.id === userId) return currentUser.displayName || currentUser.username || 'You';
+            if (currentUser && currentUser.id === userId) return getUserDisplayNameValue(currentUser, 'You');
             const friend = friendsList.find(f => f.id === userId);
-            if (friend) return friend.name || friend.username || friend.email || 'Trader';
+            if (friend) return getUserDisplayNameValue(friend, 'Trader');
             const userKey = Object.keys(users || {}).find(key => users[key] && users[key].id === userId);
-            if (userKey) return users[userKey].username || users[userKey].email || 'Trader';
+            if (userKey) return getUserDisplayNameValue(users[userKey], 'Trader');
             return userId;
         }
 
@@ -5632,9 +5728,10 @@
                 return;
             }
 
-            const displayName = authResult.displayName || email;
+            const displayName = authResult.displayName || email.split('@')[0] || 'User';
+            const normalizedUsername = displayName || 'User';
             if (!users[email]) {
-                users[email] = { username: displayName, email, password, id: authResult.userId };
+                users[email] = { username: normalizedUsername, email, password, id: authResult.userId };
                 localStorage.setItem('mtgUsers_v2', JSON.stringify(users));
             } else {
                 const userRecord = users[email];
@@ -5642,15 +5739,16 @@
                     userRecord.id = authResult.userId;
                     localStorage.setItem('mtgUsers_v2', JSON.stringify(users));
                 }
-                if (userRecord.username !== displayName) {
-                    userRecord.username = displayName;
+                if (userRecord.username !== normalizedUsername) {
+                    userRecord.username = normalizedUsername;
                     localStorage.setItem('mtgUsers_v2', JSON.stringify(users));
                 }
             }
 
-            currentUser = { username: email, displayName, email, id: authResult.userId };
+            currentUser = { username: normalizedUsername, displayName: normalizedUsername, email, id: authResult.userId };
             localStorage.setItem('mtgCurrentUser_v2', JSON.stringify(currentUser));
-            document.getElementById('navProfileUsername').textContent = displayName;
+            document.getElementById('navProfileUsername').textContent = getUserDisplayNameValue(currentUser, 'My Profile');
+            refreshDebugButtonVisibility();
             navigateToView('my-binder');
             const loaded = await loadRemoteDataForUser(authResult.userId);
             if (!loaded && isRemoteSyncConfigured()) {
@@ -5681,11 +5779,13 @@
                 return;
             }
 
-            users[email] = { username: displayName, email, password, id: authResult.userId };
+            const normalizedUsername = displayName || email.split('@')[0] || 'User';
+            users[email] = { username: normalizedUsername, email, password, id: authResult.userId };
             localStorage.setItem('mtgUsers_v2', JSON.stringify(users));
-            currentUser = { username: email, displayName, email, id: authResult.userId };
+            currentUser = { username: normalizedUsername, displayName: normalizedUsername, email, id: authResult.userId };
             localStorage.setItem('mtgCurrentUser_v2', JSON.stringify(currentUser));
-            document.getElementById('navProfileUsername').textContent = displayName;
+            document.getElementById('navProfileUsername').textContent = getUserDisplayNameValue(currentUser, 'My Profile');
+            refreshDebugButtonVisibility();
             navigateToView('my-binder');
             const loaded = await loadRemoteDataForUser(authResult.userId);
             if (!loaded && isRemoteSyncConfigured()) {
@@ -5719,6 +5819,7 @@
             currentUser = { username: 'Guest', id: guestId, guest: true };
             localStorage.setItem('mtgCurrentUser_v2', JSON.stringify(currentUser));
             document.getElementById('navProfileUsername').textContent = 'Guest';
+            refreshDebugButtonVisibility();
             navigateToView('my-binder');
         }
 
