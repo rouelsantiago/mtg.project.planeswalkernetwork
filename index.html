@@ -2222,7 +2222,7 @@
                 id: listing.id,
                 user_id: listing.ownerId,
                 card_id: listing.cardId,
-                owner_name: listing.ownerName || currentUser?.displayName || currentUser?.username || 'Trader',
+                owner_name: getUserDisplayNameValue(currentUser || { username: listing.ownerName, display_name: listing.ownerName, email: listing.ownerName }, 'Trader'),
                 condition: listing.condition || 'NM',
                 price: listing.price || 'Trade offer',
                 notes: listing.notes || '',
@@ -3070,7 +3070,39 @@
             if (friend) return getUserDisplayNameValue(friend, 'Trader');
             const localUser = Object.values(users || {}).find(u => u && u.id === ownerId);
             if (localUser) return getUserDisplayNameValue(localUser, 'Trader');
-            return ownerId;
+            return null;
+        }
+
+        function getMarketplaceSellerDisplayName(listing) {
+            if (!listing || typeof listing !== 'object') return 'Trader';
+            const directOwner = getOwnerDisplayName(listing.ownerId);
+            if (directOwner && directOwner !== listing.ownerId) {
+                return directOwner;
+            }
+
+            const userCandidates = Object.values(users || {});
+            const matchingUser = userCandidates.find(user => {
+                if (!user || typeof user !== 'object') return false;
+                if (listing.ownerId && String(user.id) === String(listing.ownerId)) return true;
+                const ownerName = typeof listing.ownerName === 'string' ? listing.ownerName.trim().toLowerCase() : '';
+                const userEmail = typeof user.email === 'string' ? user.email.trim().toLowerCase() : '';
+                const userUsername = typeof user.username === 'string' ? user.username.trim().toLowerCase() : '';
+                return ownerName && (userEmail === ownerName || userUsername === ownerName);
+            });
+            if (matchingUser) {
+                return getUserDisplayNameValue(matchingUser, 'Trader');
+            }
+
+            if (typeof listing.ownerName === 'string' && listing.ownerName.trim()) {
+                return getUserDisplayNameValue({
+                    display_name: listing.ownerName,
+                    displayName: listing.ownerName,
+                    username: listing.ownerName,
+                    name: listing.ownerName,
+                    email: listing.ownerName
+                }, 'Trader');
+            }
+            return 'Trader';
         }
 
         function createOfferBuilderItem(kind = 'cash') {
@@ -4608,7 +4640,7 @@
             const listingMarkup = visibleListings.length
                 ? visibleListings.map(listing => {
                     const cardMeta = cardMetadataCache[listing.cardId] || { name: 'Unknown Card', set: '???' };
-                    const sellerDisplay = listing.ownerName || 'Trader';
+                    const sellerDisplay = getMarketplaceSellerDisplayName(listing);
                     const imageUrl = getCardPreviewImage(cardMeta, 0) || cardMeta.art_crop || cardMeta.image_uris?.border_crop || cardMeta.image_uris?.large || cardMeta.image_uris?.normal || cardMeta.image_uris?.png || '';
                     return `
                         <div class="offer-card trade-listing-card">
@@ -5149,7 +5181,7 @@
             const listing = {
                 id: existingIndex >= 0 ? tradeListings[existingIndex].id : 'listing_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
                 ownerId: currentUser.id,
-                ownerName: currentUser.displayName || currentUser.username || 'Me',
+                ownerName: getUserDisplayNameValue(currentUser, 'Me'),
                 cardId: cardId,
                 condition: condition,
                 price: trimmedPrice,
